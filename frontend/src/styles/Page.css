@@ -1,0 +1,108 @@
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem;
+}
+
+.page-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 3rem;
+}
+
+.page-eyebrow {
+  color: var(--color-gold);
+  background-color: var(--color-charcoal);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.page-header h1 {
+  font-size: 2.2rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.page-header p {
+  color: var(--color-text-muted);
+}
+
+.page-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.page-card {
+  flex: 1;
+  min-width: 220px;
+  background-color: var(--color-white);
+  padding: 1.75rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-top: 3px solid var(--color-gold);
+}
+
+.page-card h3 {
+  color: var(--color-red);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.page-card p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 500px;
+  margin: 0 auto;
+  background-color: var(--color-white);
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.contact-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #DDD9D4;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  border-color: var(--color-red);
+  outline: none;
+}
+
+.contact-form button {
+  background-color: var(--color-red);
+  color: var(--color-white);
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.contact-form button:hover {
+  background-color: #c31820;
+}
