@@ -1,0 +1,73 @@
+# ==========================
+# DEPENDENCIAS
+# ==========================
+node_modules/
+**/node_modules/
+
+# ==========================
+# VARIABLES DE ENTORNO
+# ==========================
+.env
+.env.*
+!.env.example
+
+frontend/.env
+backend/.env
+backend/.env.local
+backend/.env.development.local
+backend/.env.production.local
+backend/.env.test.local
+
+# ==========================
+# LOGS
+# ==========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==========================
+# BUILD
+# ==========================
+dist/
+build/
+.next/
+out/
+coverage/
+
+# ==========================
+# CACHE
+# ==========================
+.cache/
+.parcel-cache/
+.vite/
+.eslintcache
+
+# ==========================
+# SISTEMA OPERATIVO
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# IDE
+# ==========================
+.vscode/
+.idea/
+
+# Excepto configuraciones compartidas (opcional)
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ==========================
+# ARCHIVOS TEMPORALES
+# ==========================
+*.tmp
+*.temp
+*.swp
+
+# ==========================
+# SUPABASE LOCAL
+# ==========================
+.supabase/
