@@ -111,37 +111,39 @@ function PagoMatricula() {
     }
   }
 
-  async function handleEnviarLink() {
-    setFeedback(null);
-    setProcesando(true);
+async function handleEnviarLink() {
+  setFeedback(null);
+  setProcesando(true);
 
-    try {
-      const [datosFoto, datosTitulo] = await Promise.all([
-        subirFotoCarnet(fotoFile.file, form.dni),
-        subirTitulo(tituloFile, form.dni),
-      ]);
+  try {
+    const [datosFoto, datosTitulo] = await Promise.all([
+      subirFotoCarnet(fotoFile.file, form.dni),
+      subirTitulo(tituloFile, form.dni),
+    ]);
 
-      const responseLink = await api.post("/pagos/culqi/crear-link", {
-        ...form,
-        id_usuario_cajero: session.id_usuario,
-        foto_key: datosFoto.foto_key,
-        foto_content_type: datosFoto.foto_content_type,
-        foto_size_bytes: datosFoto.foto_size_bytes,
-        foto_ancho_px: fotoFile.ancho,
-        foto_alto_px: fotoFile.alto,
-        titulo_key: datosTitulo.titulo_key,
-        titulo_content_type: datosTitulo.titulo_content_type,
-        titulo_size_bytes: datosTitulo.titulo_size_bytes,
-      });
+    // Reutilizamos el mismo endpoint de crear-orden, no el de Links
+    const responseOrden = await api.post("/pagos/culqi/crear-orden", {
+      ...form,
+      id_usuario_cajero: session.id_usuario,
+      foto_key: datosFoto.foto_key,
+      foto_content_type: datosFoto.foto_content_type,
+      foto_size_bytes: datosFoto.foto_size_bytes,
+      foto_ancho_px: fotoFile.ancho,
+      foto_alto_px: fotoFile.alto,
+      titulo_key: datosTitulo.titulo_key,
+      titulo_content_type: datosTitulo.titulo_content_type,
+      titulo_size_bytes: datosTitulo.titulo_size_bytes,
+      enviar_link: true, // le decimos al backend que además del QR local, mande el link
+    });
 
-      setFeedback({ type: "success", message: `Link enviado a ${form.correo || form.telefono}. Esperando su pago...` });
-      iniciarPolling(responseLink.data.data.link.id);
-    } catch (err) {
-      setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo enviar el link." });
-    } finally {
-      setProcesando(false);
-    }
+    setFeedback({ type: "success", message: `Link enviado a ${form.correo || form.telefono}. Esperando su pago...` });
+    iniciarPolling(responseOrden.data.data.orden.id);
+  } catch (err) {
+    setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo enviar el link." });
+  } finally {
+    setProcesando(false);
   }
+}
 
   async function handleConfirmarEfectivo() {
     setFeedback(null);

@@ -47,19 +47,21 @@ export async function POST(request) {
 
   if (error) return fail(error.message, 500);
 
-  // Notificar al colegiado con el link para completar su pago
-  const linkPago = `https://tu-frontend.com/pago-colegiado/${data.id}`;
-  const mensaje = `Hola ${datosFormulario.nombre_completo}, completa tu pago de matrícula aquí: ${linkPago}`;
+  // Solo notificar si el cajero eligió explícitamente "Enviar link" (no cuando muestra el QR en pantalla)
+  if (datosFormulario.enviar_link) {
+    const linkPago = `${process.env.FRONTEND_URL}/pago-colegiado/${data.id}`;
+    const mensaje = `Hola ${datosFormulario.nombre_completo}, completa el pago de tu matrícula CIP aquí: ${linkPago}`;
 
-  try {
-    if (datosFormulario.correo) {
-      await enviarCorreo(datosFormulario.correo, mensaje);
-    } else if (datosFormulario.telefono) {
-      await enviarWhatsApp(datosFormulario.telefono, mensaje);
+    try {
+      if (datosFormulario.correo) {
+        await enviarCorreo(datosFormulario.correo, mensaje);
+      } else if (datosFormulario.telefono) {
+        await enviarWhatsApp(datosFormulario.telefono, mensaje);
+      }
+    } catch (errNotificacion) {
+      // No bloqueamos la creación de la orden si falla el envío de la notificación
+      console.error("Error enviando notificación de pago:", errNotificacion.message);
     }
-  } catch (errNotificacion) {
-    // No bloqueamos la creación de la orden si falla el envío de la notificación
-    console.error("Error enviando notificación de pago:", errNotificacion.message);
   }
 
   return ok({ orden: data });
