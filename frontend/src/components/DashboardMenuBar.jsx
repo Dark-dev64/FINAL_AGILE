@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { FaKey } from "react-icons/fa";
 import "../styles/DashboardMenuBar.css";
 
 const MENU_ITEMS = {
@@ -38,6 +39,9 @@ function DashboardMenuBar() {
             {item.label}
           </Link>
         ))}
+        <Link to="/cambiar-password" className="menubar-password-link">
+          <FaKey /> Cambiar contraseña
+        </Link>
       </nav>
 
       <button className="menubar-logout" onClick={handleLogout}>

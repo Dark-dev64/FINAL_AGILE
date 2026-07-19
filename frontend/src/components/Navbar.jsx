@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
+import { 
+  FaHome, 
+  FaUsers, 
+  FaCogs, 
+  FaEnvelope,
+  FaUserPlus,
+  FaSignInAlt,
+  FaBars,
+  FaTimes
+} from "react-icons/fa";
 import "../styles/Navbar.css";
 
 function Navbar() {
@@ -7,6 +17,10 @@ function Navbar() {
 
   function closeMenu() {
     setIsOpen(false);
+  }
+
+  function toggleMenu() {
+    setIsOpen(!isOpen);
   }
 
   return (
@@ -21,35 +35,39 @@ function Navbar() {
 
       <button
         className={`navbar-toggle ${isOpen ? "open" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleMenu}
         aria-label="Abrir menú de navegación"
         aria-expanded={isOpen}
       >
-        <span></span>
-        <span></span>
-        <span></span>
+        {isOpen ? <FaTimes /> : <FaBars />}
       </button>
 
       <nav className={`navbar-links ${isOpen ? "open" : ""}`}>
         <NavLink to="/" end onClick={closeMenu} className={({ isActive }) => isActive ? "active" : ""}>
-          Inicio
+          <FaHome className="nav-icon" />
+          <span>Inicio</span>
         </NavLink>
         <NavLink to="/quienes-somos" onClick={closeMenu} className={({ isActive }) => isActive ? "active" : ""}>
-          Quiénes somos
+          <FaUsers className="nav-icon" />
+          <span>Quiénes somos</span>
         </NavLink>
         <NavLink to="/servicios" onClick={closeMenu} className={({ isActive }) => isActive ? "active" : ""}>
-          Servicios
+          <FaCogs className="nav-icon" />
+          <span>Servicios</span>
         </NavLink>
         <NavLink to="/contacto" onClick={closeMenu} className={({ isActive }) => isActive ? "active" : ""}>
-          Contacto
+          <FaEnvelope className="nav-icon" />
+          <span>Contacto</span>
         </NavLink>
 
         <div className="navbar-auth">
           <Link to="/register" onClick={closeMenu} className="navbar-register">
-            Registrarse
+            <FaUserPlus className="auth-icon" />
+            <span>Registrarse</span>
           </Link>
           <Link to="/login" onClick={closeMenu} className="navbar-cta">
-            Ingresar
+            <FaSignInAlt className="auth-icon" />
+            <span>Ingresar</span>
           </Link>
         </div>
       </nav>

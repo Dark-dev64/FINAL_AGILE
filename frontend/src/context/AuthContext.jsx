@@ -3,27 +3,29 @@ import { createContext, useState, useEffect } from "react";
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // TODO: cuando exista backend, esto se reemplaza por la sesión real (JWT/Supabase Auth)
-  const [role, setRole] = useState(() => localStorage.getItem("role") || null);
+  const [session, setSession] = useState(() => {
+    const stored = localStorage.getItem("session");
+    return stored ? JSON.parse(stored) : null;
+  });
 
   useEffect(() => {
-    if (role) {
-      localStorage.setItem("role", role);
+    if (session) {
+      localStorage.setItem("session", JSON.stringify(session));
     } else {
-      localStorage.removeItem("role");
+      localStorage.removeItem("session");
     }
-  }, [role]);
+  }, [session]);
 
-  function login(userRole) {
-    setRole(userRole);
+  function login(usuario) {
+    setSession(usuario);
   }
 
   function logout() {
-    setRole(null);
+    setSession(null);
   }
 
   return (
-    <AuthContext.Provider value={{ role, login, logout }}>
+    <AuthContext.Provider value={{ session, role: session?.rol ?? null, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

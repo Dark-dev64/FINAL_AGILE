@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
+import BareLayout from "./layouts/BareLayout";
 
 import Home from "./pages/Home";
 import QuienesSomos from "./pages/QuienesSomos";
@@ -15,6 +16,9 @@ import SolicitudesAdmin from "./pages/SolicitudesAdmin";
 import DashboardColegiado from "./pages/DashboardColegiado";
 import DashboardCajero from "./pages/DashboardCajero";
 import PruebaCajero from "./pages/PruebaCajero";
+import PagoMatricula from "./pages/PagoMatricula";
+import CambiarPassword from "./pages/CambiarPassword";
+import RecuperarContrasena from "./pages/RecuperarContrasena";
 
 function App() {
   return (
@@ -30,12 +34,18 @@ function App() {
             <Route path="/register" element={<Register />} />
           </Route>
 
+          <Route element={<BareLayout />}>
+            <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          </Route>
+
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard-admin" element={<DashboardAdmin />} />
             <Route path="/dashboard-admin/solicitudes" element={<SolicitudesAdmin />} />
             <Route path="/dashboard-colegiado" element={<DashboardColegiado />} />
             <Route path="/dashboard-cajero" element={<DashboardCajero />} />
             <Route path="/dashboard-cajero/prueba" element={<PruebaCajero />} />
+            <Route path="/dashboard-cajero/pago" element={<PagoMatricula />} />
+            <Route path="/cambiar-password" element={<CambiarPassword />} />
           </Route>
         </Routes>
       </BrowserRouter>

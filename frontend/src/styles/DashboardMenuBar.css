@@ -71,3 +71,9 @@
     gap: 1rem;
   }
 }
+
+.menubar-password-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

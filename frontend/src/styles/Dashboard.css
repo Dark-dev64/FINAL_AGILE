@@ -86,3 +86,8 @@
   border-color: var(--color-red);
   color: var(--color-red);
 }
+
+.dashboard.form-layout {
+  align-items: flex-start;
+  padding-top: 3rem;
+}

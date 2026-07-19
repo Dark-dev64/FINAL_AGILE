@@ -1,0 +1,82 @@
+.lista-solicitudes {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.lista-estado {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem;
+}
+
+.lista-estado.error {
+  color: var(--color-red);
+}
+
+.tabla-wrapper {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.tabla-solicitudes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.tabla-solicitudes th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  background-color: var(--color-charcoal);
+  color: var(--color-gold);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tabla-solicitudes td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #EEEBE6;
+  white-space: nowrap;
+}
+
+.tabla-solicitudes tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tabla-solicitudes tbody tr:hover {
+  background-color: var(--color-bg);
+}
+
+.estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.estado-badge svg {
+  font-size: 0.5rem;
+}
+
+.estado-badge.green, .estado-badge.aprobada {
+  background-color: #E1F5E4;
+  color: #1E7A34;
+}
+
+.estado-badge.red, .estado-badge.rechazada {
+  background-color: #FBE1E1;
+  color: #B0201F;
+}
+
+.estado-badge.yellow, .estado-badge.pendiente {
+  background-color: #FDF3D6;
+  color: #8A6D00;
+}
