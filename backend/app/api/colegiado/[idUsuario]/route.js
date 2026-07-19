@@ -8,6 +8,12 @@ export async function GET(request, { params }) {
   // Así, para la demo, no dependemos de esperar al cron diario.
   await supabaseAdmin.rpc("fn_procesar_notificaciones_wrapper");
 
+  fetch(`${process.env.APP_URL || "http://localhost:3000"}/api/notificaciones/procesar`, {
+    method: "POST",
+  }).catch((err) =>
+    console.error("Error disparando envío de notificaciones:", err.message)
+  );
+
   const { data: usuario, error: errorUsuario } = await supabaseAdmin
     .from("usuarios")
     .select("id_usuario, estados ( nombre, color )")

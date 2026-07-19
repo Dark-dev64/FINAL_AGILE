@@ -859,3 +859,101 @@ BEGIN
     WHERE id_usuario = p_id_usuario;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE sp_procesar_notificaciones()
+LANGUAGE plpgsql AS $$
+DECLARE
+    r_pago RECORD;
+    v_dias_restantes INTEGER;
+    v_tipo VARCHAR(30);
+    v_mensaje TEXT;
+    v_incluye_deuda BOOLEAN;
+    v_id_estado_con_deuda INTEGER;
+BEGIN
+    SELECT id_estado INTO v_id_estado_con_deuda FROM estados WHERE nombre = 'con_deuda';
+
+    FOR r_pago IN
+        SELECT p.id_pago, p.id_usuario_colegiado, p.fecha_vencimiento, p.estado_pago,
+               s.correo, s.telefono, s.nombre_completo
+        FROM pagos p
+        JOIN solicitudes s ON s.id_usuario_colegiado = p.id_usuario_colegiado
+        WHERE p.estado_pago IN ('pendiente', 'atrasado')
+    LOOP
+        v_dias_restantes := r_pago.fecha_vencimiento - CURRENT_DATE;
+
+        v_incluye_deuda := false;
+        v_tipo := NULL;
+
+        IF v_dias_restantes = 5 THEN
+            v_tipo := 'recordatorio_5_dias';
+            v_mensaje := 'Tu colegiatura vence en 5 días (' || r_pago.fecha_vencimiento || ').';
+
+        ELSIF v_dias_restantes = 3 THEN
+            v_tipo := 'recordatorio_3_dias';
+            v_mensaje := 'Tu colegiatura vence en 3 días (' || r_pago.fecha_vencimiento || ').';
+
+        ELSIF v_dias_restantes = 1 THEN
+            v_tipo := 'recordatorio_1_dia';
+            v_mensaje := 'Tu colegiatura vence mañana (' || r_pago.fecha_vencimiento || ').';
+
+        ELSIF v_dias_restantes = 0 THEN
+            v_tipo := 'vencimiento';
+            v_mensaje := 'Tu colegiatura vence hoy. Realiza tu pago para evitar recargos.';
+
+        ELSIF v_dias_restantes < 0 THEN
+            v_tipo := 'vencido_diario';
+            v_incluye_deuda := true;
+            v_mensaje := 'Tu colegiatura está vencida desde el ' || r_pago.fecha_vencimiento ||
+                         '. Tienes una deuda pendiente, regulariza tu pago.';
+
+            IF r_pago.estado_pago <> 'atrasado' THEN
+                UPDATE pagos SET estado_pago = 'atrasado' WHERE id_pago = r_pago.id_pago;
+            END IF;
+
+            UPDATE usuarios
+            SET id_estado = v_id_estado_con_deuda
+            WHERE id_usuario = r_pago.id_usuario_colegiado;
+        END IF;
+
+        -- Si corresponde un tipo hoy, insertamos UNA fila POR CADA canal disponible
+        IF v_tipo IS NOT NULL THEN
+
+            IF r_pago.correo IS NOT NULL AND NOT EXISTS (
+                SELECT 1 FROM notificaciones
+                WHERE id_pago = r_pago.id_pago
+                  AND tipo_notificacion = v_tipo
+                  AND canal = 'correo'
+                  AND DATE(fecha_programada) = CURRENT_DATE
+            ) THEN
+                INSERT INTO notificaciones (
+                    id_usuario_colegiado, id_pago, tipo_notificacion, canal,
+                    destinatario, incluye_aviso_deuda, mensaje,
+                    fecha_programada, estado_envio
+                ) VALUES (
+                    r_pago.id_usuario_colegiado, r_pago.id_pago, v_tipo, 'correo',
+                    r_pago.correo, v_incluye_deuda, v_mensaje, now(), 'pendiente'
+                );
+            END IF;
+
+            IF r_pago.telefono IS NOT NULL AND NOT EXISTS (
+                SELECT 1 FROM notificaciones
+                WHERE id_pago = r_pago.id_pago
+                  AND tipo_notificacion = v_tipo
+                  AND canal = 'sms'
+                  AND DATE(fecha_programada) = CURRENT_DATE
+            ) THEN
+                INSERT INTO notificaciones (
+                    id_usuario_colegiado, id_pago, tipo_notificacion, canal,
+                    destinatario, incluye_aviso_deuda, mensaje,
+                    fecha_programada, estado_envio
+                ) VALUES (
+                    r_pago.id_usuario_colegiado, r_pago.id_pago, v_tipo, 'sms',
+                    r_pago.telefono, v_incluye_deuda, v_mensaje, now(), 'pendiente'
+                );
+            END IF;
+
+        END IF;
+
+    END LOOP;
+END;
+$$;
