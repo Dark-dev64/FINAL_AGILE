@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
@@ -6,7 +6,7 @@ import { subirFotoCarnet, subirTitulo } from "../services/uploadService";
 import { FaMoneyBillWave, FaQrcode, FaCheckCircle, FaExclamationCircle, FaSpinner } from "react-icons/fa";
 import "../styles/PagoMatricula.css";
 
-const MONTO_MATRICULA = 3.0;
+const MONTO_MATRICULA = 6.00;
 
 const METODOS = [
   { valor: "efectivo", label: "Efectivo", icono: FaMoneyBillWave },
@@ -26,18 +26,128 @@ function PagoMatricula() {
   const [procesando, setProcesando] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  const [ordenCulqi, setOrdenCulqi] = useState(null);
+  const [idSolicitudCreada, setIdSolicitudCreada] = useState(null);
+  const intervaloRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearInterval(intervaloRef.current); // limpieza al salir de la pantalla
+  }, []);
+
   // Si alguien llega directo a esta URL sin pasar por el formulario, lo regresamos
   if (!form) {
     navigate("/dashboard-cajero");
     return null;
   }
 
-  async function handleConfirmarPago() {
+  function iniciarPolling(culqiOrderId) {
+    intervaloRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/pagos/estado/${culqiOrderId}`);
+        if (res.data.data.estado_pago === "pagado") {
+          clearInterval(intervaloRef.current);
+          setFeedback({ type: "success", message: "¡Pago confirmado! Solicitud enviada al administrador." });
+          setTimeout(() => navigate("/dashboard-cajero"), 2500);
+        }
+      } catch (err) {
+        // silenciosamente reintenta en el siguiente ciclo
+      }
+    }, 3000);
+  }
+
+  async function handleGenerarQR() {
     setFeedback(null);
     setProcesando(true);
 
     try {
-      // Recién AQUÍ se sube todo, al confirmar el pago
+      const [datosFoto, datosTitulo] = await Promise.all([
+        subirFotoCarnet(fotoFile.file, form.dni),
+        subirTitulo(tituloFile, form.dni),
+      ]);
+
+      const responseOrden = await api.post("/pagos/culqi/crear-orden", {
+        ...form,
+        id_usuario_cajero: session.id_usuario,
+        foto_key: datosFoto.foto_key,
+        foto_content_type: datosFoto.foto_content_type,
+        foto_size_bytes: datosFoto.foto_size_bytes,
+        foto_ancho_px: fotoFile.ancho,
+        foto_alto_px: fotoFile.alto,
+        titulo_key: datosTitulo.titulo_key,
+        titulo_content_type: datosTitulo.titulo_content_type,
+        titulo_size_bytes: datosTitulo.titulo_size_bytes,
+      });
+
+      const orden = responseOrden.data.data.orden;
+      setOrdenCulqi(orden);
+
+      // Configura y abre el Checkout de Culqi para esta orden específica
+      window.Culqi.publicKey = import.meta.env.VITE_CULQI_PUBLIC_KEY;
+      window.Culqi.settings({
+        currency: "PEN",
+        amount: orden.amount,
+        order: orden.id,
+      });
+      window.Culqi.options({
+        lang: "es",
+        installments: false,
+        paymentMethods: {
+          tarjeta: false,
+          yape: false,
+          billetera: true,    // ← este es el que genera el QR real
+          bancaMovil: false,
+          agente: false,
+          cuotealo: false,
+        },
+      });
+
+      window.Culqi.open();
+
+      iniciarPolling(orden.id);
+    } catch (err) {
+      setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo generar el QR." });
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  async function handleEnviarLink() {
+    setFeedback(null);
+    setProcesando(true);
+
+    try {
+      const [datosFoto, datosTitulo] = await Promise.all([
+        subirFotoCarnet(fotoFile.file, form.dni),
+        subirTitulo(tituloFile, form.dni),
+      ]);
+
+      const responseLink = await api.post("/pagos/culqi/crear-link", {
+        ...form,
+        id_usuario_cajero: session.id_usuario,
+        foto_key: datosFoto.foto_key,
+        foto_content_type: datosFoto.foto_content_type,
+        foto_size_bytes: datosFoto.foto_size_bytes,
+        foto_ancho_px: fotoFile.ancho,
+        foto_alto_px: fotoFile.alto,
+        titulo_key: datosTitulo.titulo_key,
+        titulo_content_type: datosTitulo.titulo_content_type,
+        titulo_size_bytes: datosTitulo.titulo_size_bytes,
+      });
+
+      setFeedback({ type: "success", message: `Link enviado a ${form.correo || form.telefono}. Esperando su pago...` });
+      iniciarPolling(responseLink.data.data.link.id);
+    } catch (err) {
+      setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo enviar el link." });
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  async function handleConfirmarEfectivo() {
+    setFeedback(null);
+    setProcesando(true);
+
+    try {
       const [datosFoto, datosTitulo] = await Promise.all([
         subirFotoCarnet(fotoFile.file, form.dni),
         subirTitulo(tituloFile, form.dni),
@@ -54,7 +164,7 @@ function PagoMatricula() {
         titulo_key: datosTitulo.titulo_key,
         titulo_content_type: datosTitulo.titulo_content_type,
         titulo_size_bytes: datosTitulo.titulo_size_bytes,
-        metodo_pago: metodoPago,
+        metodo_pago: "efectivo",
         fecha_pago: new Date(fechaPago).toISOString(),
         fecha_vencimiento: fechaPago,
       });
@@ -94,6 +204,7 @@ function PagoMatricula() {
               type="button"
               className={`metodo-card ${metodoPago === valor ? "activo" : ""}`}
               onClick={() => setMetodoPago(valor)}
+              disabled={procesando || !!ordenCulqi}
             >
               <Icono />
               <span>{label}</span>
@@ -101,10 +212,9 @@ function PagoMatricula() {
           ))}
         </div>
 
-        {(metodoPago === "yape" || metodoPago === "plin") && (
+        {ordenCulqi && (
           <div className="qr-placeholder">
-            <FaQrcode className="qr-icon" />
-            <p>Código QR de {metodoPago === "yape" ? "Yape" : "Plin"} (simulado para pruebas)</p>
+            <p>Completa el pago en la ventana de Culqi que se abrió. Esperando confirmación...</p>
           </div>
         )}
 
@@ -115,6 +225,7 @@ function PagoMatricula() {
             type="date"
             value={fechaPago}
             onChange={(e) => setFechaPago(e.target.value)}
+            disabled={procesando || !!ordenCulqi}
           />
         </label>
 
@@ -125,20 +236,33 @@ function PagoMatricula() {
           </div>
         )}
 
-        <button
-          className="submit-button"
-          onClick={handleConfirmarPago}
-          disabled={procesando || feedback?.type === "success"}
-        >
-          {procesando ? (
-            <>
-              <FaSpinner className="spinning" />
-              Procesando pago...
-            </>
-          ) : (
-            "Confirmar pago y enviar solicitud"
-          )}
-        </button>
+        {metodoPago === "efectivo" ? (
+          <button
+            className="submit-button"
+            onClick={handleConfirmarEfectivo}
+            disabled={procesando || feedback?.type === "success"}
+          >
+            {procesando ? (
+              <>
+                <FaSpinner className="spinning" />
+                Procesando pago...
+              </>
+            ) : (
+              "Confirmar pago en efectivo"
+            )}
+          </button>
+        ) : (
+          !ordenCulqi && (
+            <div className="pago-opciones">
+              <button className="submit-button" onClick={handleGenerarQR} disabled={procesando}>
+                {procesando ? "Generando..." : "Mostrar QR en pantalla"}
+              </button>
+              <button className="submit-button secundario" onClick={handleEnviarLink} disabled={procesando}>
+                {procesando ? "Enviando..." : `Enviar link a su ${form.correo ? "correo" : "WhatsApp"}`}
+              </button>
+            </div>
+          )
+        )}
       </div>
     </section>
   );

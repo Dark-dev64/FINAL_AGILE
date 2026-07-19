@@ -4,6 +4,10 @@ import { ok, fail } from "../../../../utils/apiResponse";
 export async function GET(request, { params }) {
   const { idUsuario } = await params;
 
+  // Recalcula el estado (vencimientos, deuda) EN VIVO antes de leer los datos.
+  // Así, para la demo, no dependemos de esperar al cron diario.
+  await supabaseAdmin.rpc("fn_procesar_notificaciones_wrapper");
+
   const { data: usuario, error: errorUsuario } = await supabaseAdmin
     .from("usuarios")
     .select("id_usuario, estados ( nombre, color )")
@@ -38,7 +42,7 @@ export async function GET(request, { params }) {
   if (solicitud.foto_key) {
     const { data } = await supabaseAdmin.storage
       .from("fotos-carnet")
-      .createSignedUrl(solicitud.foto_key, 60 * 10); // 10 minutos
+      .createSignedUrl(solicitud.foto_key, 60 * 10);
     fotoUrl = data?.signedUrl ?? null;
   }
 

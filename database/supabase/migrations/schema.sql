@@ -680,3 +680,54 @@ BEGIN
     WHERE id_usuario = p_id_usuario;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fn_generar_siguiente_mensualidad()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.tipo_pago = 'mensualidad'
+       AND NEW.estado_pago = 'pagado'
+       AND OLD.estado_pago IS DISTINCT FROM 'pagado' THEN
+
+        INSERT INTO pagos (
+            id_usuario_colegiado, id_usuario_cajero, tipo_pago, metodo_pago,
+            monto_base, porcentaje_recargo, fecha_vencimiento, estado_pago
+        ) VALUES (
+            NEW.id_usuario_colegiado,
+            NEW.id_usuario_cajero,
+            'mensualidad',
+            NULL,
+            NEW.monto_base, -- mantiene el mismo monto base que la anterior
+            0,
+            (NEW.fecha_vencimiento + INTERVAL '1 month')::DATE,
+            'pendiente'
+        );
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_pagos_siguiente_mensualidad
+AFTER UPDATE ON pagos
+FOR EACH ROW
+EXECUTE FUNCTION fn_generar_siguiente_mensualidad();
+
+CREATE OR REPLACE FUNCTION fn_procesar_notificaciones_wrapper()
+RETURNS VOID AS $$
+BEGIN
+    CALL sp_procesar_notificaciones();
+END;
+$$ LANGUAGE plpgsql;
+
+ALTER TABLE pagos
+    ADD COLUMN culqi_order_id VARCHAR(50);
+
+CREATE INDEX idx_pagos_culqi_order_id ON pagos(culqi_order_id);
+
+CREATE TABLE ordenes_pago_pendientes (
+    id_orden_temp SERIAL PRIMARY KEY,
+    culqi_order_id VARCHAR(50) NOT NULL UNIQUE,
+    datos_solicitud JSONB NOT NULL, -- todos los campos del formulario, guardados tal cual
+    monto NUMERIC(10,2) NOT NULL,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);

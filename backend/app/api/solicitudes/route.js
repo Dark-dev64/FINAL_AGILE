@@ -3,6 +3,14 @@ import { ok, fail } from "../../../utils/apiResponse";
 import { isNotEmpty, isValidDNI } from "../../../utils/validators";
 
 export async function GET() {
+  const { error: errorNotificaciones } = await supabaseAdmin.rpc(
+    "fn_procesar_notificaciones_wrapper"
+  );
+
+  if (errorNotificaciones) {
+    console.error("Error procesando notificaciones:", errorNotificaciones.message);
+  }
+
   const { data, error } = await supabaseAdmin
     .from("solicitudes")
     .select(`

@@ -19,6 +19,7 @@ import PruebaCajero from "./pages/PruebaCajero";
 import PagoMatricula from "./pages/PagoMatricula";
 import CambiarPassword from "./pages/CambiarPassword";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
+import PagoColegiadoRemoto from "./pages/PagoColegiadoRemoto";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/contacto" element={<Contacto />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/pago-colegiado/:orderId" element={<PagoColegiadoRemoto />} />
           </Route>
 
           <Route element={<BareLayout />}>
