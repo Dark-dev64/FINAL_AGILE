@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import {
   FaTimes,
   FaCheckCircle,
@@ -17,6 +18,7 @@ import {
   FaMoneyBillWave,
   FaCalendarAlt,
   FaFileAlt,
+  FaCommentDots,
 } from "react-icons/fa";
 import "../styles/DetalleSolicitud.css";
 
@@ -27,11 +29,13 @@ const ESTADO_LABELS = {
 };
 
 function DetalleSolicitud({ idSolicitud, onClose }) {
+  const { session } = useAuth();
   const [detalle, setDetalle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
   const [confirmando, setConfirmando] = useState(null); // "aprobada" | "rechazada" | null
+  const [observacion, setObservacion] = useState("");
 
   const cargarDetalle = useCallback(async () => {
     setLoading(true);
@@ -63,10 +67,32 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function iniciarConfirmacion(nuevoEstado) {
+    setError(null);
+    setObservacion("");
+    setConfirmando(nuevoEstado);
+  }
+
+  function cancelarConfirmacion() {
+    setConfirmando(null);
+    setObservacion("");
+  }
+
   async function confirmarAccion(nuevoEstado) {
+    if (nuevoEstado === "rechazada" && !observacion.trim()) {
+      setError("Debes escribir una observación para rechazar la solicitud.");
+      return;
+    }
+
     setProcesando(true);
     try {
-      await api.patch(`/solicitudes/${idSolicitud}`, { estado_solicitud: nuevoEstado });
+      await api.patch(`/solicitudes/${idSolicitud}`, {
+        estado_solicitud: nuevoEstado,
+        ...(nuevoEstado === "rechazada" && {
+          observacion: observacion.trim(),
+          id_usuario_admin: session?.id_usuario,
+        }),
+      });
       onClose(true);
     } catch (err) {
       setError(err.response?.data?.error || "No se pudo actualizar el estado.");
@@ -99,7 +125,7 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
           </div>
         )}
 
-        {error && !loading && (
+        {error && !loading && !confirmando && (
           <div className="dashboard-error-card">
             <FaExclamationTriangle className="dashboard-error-icon" />
             <p>{error}</p>
@@ -231,14 +257,14 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
                   <div className="detalle-acciones">
                     <button
                       className="btn-rechazar"
-                      onClick={() => setConfirmando("rechazada")}
+                      onClick={() => iniciarConfirmacion("rechazada")}
                       disabled={procesando}
                     >
                       <FaBan /> Rechazar
                     </button>
                     <button
                       className="btn-aprobar"
-                      onClick={() => setConfirmando("aprobada")}
+                      onClick={() => iniciarConfirmacion("aprobada")}
                       disabled={procesando}
                     >
                       <FaCheckCircle /> Aprobar
@@ -253,10 +279,38 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
                         ? `¿Confirmas aprobar la solicitud de ${detalle.nombre_completo}? Se generará su carnet y credenciales de acceso.`
                         : `¿Confirmas rechazar la solicitud de ${detalle.nombre_completo}? Esta acción no se puede deshacer.`}
                     </p>
+
+                    {confirmando === "rechazada" && (
+                      <div className="observacion-flotante">
+                        <div className="observacion-flotante-header">
+                          <FaCommentDots />
+                          <span>Agregar Observación <span className="observacion-required">*</span></span>
+                        </div>
+                        <textarea
+                          className="observacion-textarea"
+                          rows={4}
+                          placeholder="Explica el motivo del rechazo (ej: foto no cumple el formato tipo carnet, documentos ilegibles, datos incompletos)..."
+                          value={observacion}
+                          onChange={(e) => setObservacion(e.target.value)}
+                          disabled={procesando}
+                          autoFocus
+                        />
+                        <span className="observacion-hint">
+                          Esta observación se enviará al solicitante por correo y WhatsApp.
+                        </span>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="detalle-confirmacion-error">
+                        <FaExclamationTriangle /> {error}
+                      </div>
+                    )}
+
                     <div className="detalle-confirmacion-botones">
                       <button
                         className="btn-cancelar-confirmacion"
-                        onClick={() => setConfirmando(null)}
+                        onClick={cancelarConfirmacion}
                         disabled={procesando}
                       >
                         Cancelar
@@ -264,7 +318,9 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
                       <button
                         className={confirmando === "aprobada" ? "btn-aprobar" : "btn-rechazar"}
                         onClick={() => confirmarAccion(confirmando)}
-                        disabled={procesando}
+                        disabled={
+                          procesando || (confirmando === "rechazada" && !observacion.trim())
+                        }
                       >
                         {procesando ? (
                           <FaSpinner className="spinning" />

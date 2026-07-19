@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
+import { notificarCambioPassword } from "../../../../lib/notificarCambioPassword";
 
 export async function POST(request) {
   const { id_usuario, password_nueva } = await request.json();
@@ -14,5 +15,8 @@ export async function POST(request) {
   });
 
   if (error) return fail(error.message, 500);
+
+  await notificarCambioPassword(id_usuario, data[0].codigo_nuevo);
+
   return ok({ message: "Contraseña actualizada correctamente." });
 }

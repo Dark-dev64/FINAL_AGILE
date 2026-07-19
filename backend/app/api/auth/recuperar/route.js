@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
+import { notificarCambioPassword } from "../../../../lib/notificarCambioPassword"; // ← esta línea faltaba
 
 export async function POST(request) {
   const { username, codigo_recuperacion, password_nueva } = await request.json();
@@ -10,7 +11,7 @@ export async function POST(request) {
 
   const { data: usuario, error } = await supabaseAdmin
     .from("usuarios")
-    .select("id_usuario, codigo_recuperacion, codigo_recuperacion_expira")
+    .select("id_usuario, codigo_recuperacion")
     .eq("username", username)
     .single();
 
@@ -22,14 +23,14 @@ export async function POST(request) {
     return fail("Código de recuperación incorrecto.", 401);
   }
 
-  if (new Date(usuario.codigo_recuperacion_expira) < new Date()) {
-    return fail("El código de recuperación ha expirado.", 401);
-  }
-
-  await supabaseAdmin.rpc("cambiar_password_usuario", {
+  const { data: resultado, error: errorCambio } = await supabaseAdmin.rpc("cambiar_password_usuario", {
     p_id_usuario: usuario.id_usuario,
     p_password_nueva: password_nueva,
   });
+
+  if (errorCambio) return fail(errorCambio.message, 500);
+
+  await notificarCambioPassword(usuario.id_usuario, resultado[0].codigo_nuevo);
 
   return ok({ message: "Contraseña restablecida correctamente." });
 }

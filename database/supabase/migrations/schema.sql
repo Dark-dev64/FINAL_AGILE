@@ -731,3 +731,131 @@ CREATE TABLE ordenes_pago_pendientes (
     monto NUMERIC(10,2) NOT NULL,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE OR REPLACE FUNCTION fn_aprobar_solicitud()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_id_rol_colegiado INTEGER;
+    v_id_estado_habilitado INTEGER;
+    v_id_usuario_nuevo INTEGER;
+    v_correlativo INTEGER;
+    v_password_generada TEXT;
+    v_codigo_recuperacion TEXT;
+    v_mensaje TEXT;
+BEGIN
+    IF NEW.estado_solicitud = 'aprobada' AND OLD.estado_solicitud IS DISTINCT FROM 'aprobada' THEN
+
+        SELECT id_rol INTO v_id_rol_colegiado FROM roles WHERE nombre = 'colegiado';
+        SELECT id_estado INTO v_id_estado_habilitado FROM estados WHERE nombre = 'habilitado';
+
+        SELECT COALESCE(COUNT(*), 0) + 1 INTO v_correlativo
+        FROM solicitudes
+        WHERE id_sede = NEW.id_sede AND estado_solicitud = 'aprobada';
+
+        NEW.numero_registro := NEW.id_sede || '-' || LPAD(v_correlativo::TEXT, 5, '0');
+        NEW.fecha_aprobacion := now();
+
+        -- Generar contraseña aleatoria de 8 caracteres y código de recuperación de 6 dígitos
+        v_password_generada := substr(md5(random()::text), 1, 8);
+        v_codigo_recuperacion := lpad(floor(random() * 1000000)::text, 6, '0');
+
+        INSERT INTO usuarios (
+            username, password_hash, id_rol, id_sede, id_estado,
+            codigo_recuperacion, codigo_recuperacion_expira, requiere_cambio_password
+        )
+        VALUES (
+            NEW.dni,
+            crypt(v_password_generada, gen_salt('bf')),
+            v_id_rol_colegiado,
+            NEW.id_sede,
+            v_id_estado_habilitado,
+            v_codigo_recuperacion,
+            now() + interval '7 days',
+            true
+        )
+        RETURNING id_usuario INTO v_id_usuario_nuevo;
+
+        NEW.id_usuario_colegiado := v_id_usuario_nuevo;
+
+        -- Enlazar el pago histórico (matrícula) al usuario recién creado
+        UPDATE pagos
+        SET id_usuario_colegiado = v_id_usuario_nuevo
+        WHERE id_solicitud = NEW.id_solicitud;
+
+        -- Generar automáticamente la primera mensualidad, pendiente de pago
+        INSERT INTO pagos (
+            id_usuario_colegiado, id_usuario_cajero, tipo_pago, metodo_pago,
+            monto_base, porcentaje_recargo, fecha_vencimiento, estado_pago
+        ) VALUES (
+            v_id_usuario_nuevo,
+            NEW.id_usuario_cajero,
+            'mensualidad',
+            NULL, -- aún no se ha pagado, no hay método todavía
+            3.00, -- TODO: ajustar al monto real de la mensualidad
+            0,
+            (CURRENT_DATE + INTERVAL '1 month')::DATE,
+            'pendiente'
+        );
+
+        v_mensaje := 'Bienvenido al CIP, ' || NEW.nombre_completo || '. ' ||
+                     'Tu usuario es tu DNI: ' || NEW.dni || '. ' ||
+                     'Tu contraseña temporal es: ' || v_password_generada || '. ' ||
+                     'Código de recuperación (guárdalo): ' || v_codigo_recuperacion || '. ' ||
+                     'Deberás cambiar tu contraseña al ingresar por primera vez.';
+
+        -- Enviar por CADA canal que tenga dato registrado (correo y/o teléfono).
+        -- Si el colegiado dejó ambos, se insertan dos filas -> se envía por los dos.
+        -- Si solo dejó uno, se inserta una sola fila -> se envía solo por ese.
+        IF NEW.correo IS NOT NULL THEN
+            INSERT INTO credenciales_envio (id_usuario, id_solicitud, canal, destinatario, mensaje)
+            VALUES (v_id_usuario_nuevo, NEW.id_solicitud, 'correo', NEW.correo, v_mensaje);
+        END IF;
+
+        IF NEW.telefono IS NOT NULL THEN
+            INSERT INTO credenciales_envio (id_usuario, id_solicitud, canal, destinatario, mensaje)
+            VALUES (v_id_usuario_nuevo, NEW.id_solicitud, 'sms', NEW.telefono, v_mensaje);
+        END IF;
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ==========================================================
+-- TABLA: observaciones
+-- Registra el motivo por el cual el administrador rechazó
+-- una solicitud de colegiatura. Es obligatoria al rechazar.
+-- ==========================================================
+CREATE TABLE observaciones (
+    id_observacion SERIAL PRIMARY KEY,
+    id_solicitud INTEGER NOT NULL REFERENCES solicitudes(id_solicitud),
+    id_usuario_admin INTEGER REFERENCES usuarios(id_usuario), -- quién la registró (si se conoce)
+    observacion TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_observaciones_id_solicitud ON observaciones(id_solicitud);
+
+ALTER TABLE usuarios
+    DROP COLUMN codigo_recuperacion_expira;
+
+CREATE OR REPLACE FUNCTION cambiar_password_usuario(p_id_usuario INTEGER, p_password_nueva TEXT)
+RETURNS TABLE(username VARCHAR, codigo_nuevo VARCHAR) AS $$
+DECLARE
+    v_codigo_nuevo TEXT;
+BEGIN
+    v_codigo_nuevo := lpad(floor(random() * 1000000)::text, 6, '0');
+
+    UPDATE usuarios
+    SET password_hash = crypt(p_password_nueva, gen_salt('bf')),
+        requiere_cambio_password = false,
+        codigo_recuperacion = v_codigo_nuevo
+    WHERE id_usuario = p_id_usuario;
+
+    RETURN QUERY
+    SELECT usuarios.username, v_codigo_nuevo
+    FROM usuarios
+    WHERE id_usuario = p_id_usuario;
+END;
+$$ LANGUAGE plpgsql;

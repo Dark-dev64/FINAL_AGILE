@@ -1,4 +1,4 @@
-import { enviarCorreo } from "../lib/emailClient";
+import { enviarComprobanteCorreo } from "../lib/emailClient";
 import { enviarWhatsApp } from "../lib/whatsappClient";
 
 /**
@@ -9,6 +9,10 @@ import { enviarWhatsApp } from "../lib/whatsappClient";
  * - Si tiene correo Y teléfono -> se envía por AMBOS canales (Gmail + WhatsApp).
  * - Si solo tiene uno de los dos -> se envía solo por ese canal.
  * - Los envíos son independientes: si uno falla, no bloquea al otro.
+ *
+ * El correo usa una plantilla HTML propia de "boleta de pago"
+ * (enviarComprobanteCorreo), distinta de la del correo de credenciales.
+ * El WhatsApp sigue siendo texto plano.
  *
  * Nota: en la base de datos algunos registros usan el valor "sms" como nombre
  * de canal por razones históricas, pero en la práctica ese canal siempre
@@ -22,6 +26,7 @@ import { enviarWhatsApp } from "../lib/whatsappClient";
  * @param {string} datos.metodoPago  "yape" | "plin"
  * @param {number|string} datos.monto
  * @param {string} [datos.numeroRegistro] - opcional, si ya se generó
+ * @param {string} [datos.orderNumber] - opcional, número de operación de Culqi
  */
 export async function enviarComprobantePago({
   nombreCompleto,
@@ -31,10 +36,11 @@ export async function enviarComprobantePago({
   metodoPago,
   monto,
   numeroRegistro,
+  orderNumber,
 }) {
   const fecha = new Date().toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" });
 
-  const mensaje =
+  const mensajeWhatsApp =
     `Hola ${nombreCompleto}, confirmamos que tu pago de matrícula CIP ` +
     `por S/ ${monto} vía ${metodoPago.toUpperCase()} fue procesado correctamente el ${fecha}. ` +
     `DNI: ${dni}.` +
@@ -46,7 +52,15 @@ export async function enviarComprobantePago({
 
   if (correo) {
     envios.push(
-      enviarCorreo(correo, mensaje)
+      enviarComprobanteCorreo(correo, {
+        nombreCompleto,
+        dni,
+        metodoPago,
+        monto,
+        fecha,
+        numeroRegistro,
+        orderNumber,
+      })
         .then(() => ({ canal: "correo", ok: true }))
         .catch((err) => ({ canal: "correo", ok: false, error: err.message }))
     );
@@ -54,7 +68,7 @@ export async function enviarComprobantePago({
 
   if (telefono) {
     envios.push(
-      enviarWhatsApp(telefono, mensaje)
+      enviarWhatsApp(telefono, mensajeWhatsApp)
         .then(() => ({ canal: "whatsapp", ok: true }))
         .catch((err) => ({ canal: "whatsapp", ok: false, error: err.message }))
     );
