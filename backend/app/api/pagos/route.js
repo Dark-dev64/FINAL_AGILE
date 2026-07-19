@@ -17,8 +17,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const evento = await request.json();
-  console.log("🔔 Webhook Culqi recibido:", JSON.stringify(evento, null, 2));
+  
   const body = await request.json();
 
   const { data, error } = await supabaseAdmin
