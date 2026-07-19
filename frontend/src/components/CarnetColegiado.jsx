@@ -1,45 +1,33 @@
 import "../styles/Carnet.css";
 
-const ESTADOS = {
-  habilitado: { label: "Habilitado", color: "green" },
-  inhabilitado: { label: "Inhabilitado", color: "red" },
-  con_deuda: { label: "Con deuda", color: "yellow" },
-};
-
 function CarnetColegiado({ data }) {
-  const estadoInfo = ESTADOS[data.estado] ?? ESTADOS.inhabilitado;
-
   return (
     <div className="carnet">
-      <div className="carnet-header">
-        <img src="/logocip.png" alt="CIP" className="carnet-logo" />
-        <div className="carnet-title">
-          <strong>Colegio de Ingenieros</strong>
-          <span>del Perú</span>
+      <img src="/logocip.png" alt="" aria-hidden="true" className="carnet-watermark" />
+
+      <div className="carnet-content">
+        <div className="carnet-left-col">
+          <img src="/logocip.png" alt="CIP" className="carnet-logo" />
+          <img src={data.fotoUrl} alt="Foto del colegiado" className="carnet-photo" />
         </div>
-        <span className={`carnet-estado ${estadoInfo.color}`}>
-          {estadoInfo.label}
-        </span>
-      </div>
 
-      <div className="carnet-body">
-        <img src={data.fotoUrl} alt="Foto del colegiado" className="carnet-photo" />
+        <div className="carnet-right-col">
+          <h2 className="carnet-title">
+            <span className="carnet-title-line">COLEGIO DE INGENIEROS</span>
+            <span className="carnet-title-line">DEL PERÚ</span>
+          </h2>
 
-        <div className="carnet-info">
-          <p className="carnet-nombre">
-            {data.apellidoPaterno} {data.apellidoMaterno}
-          </p>
-          <p className="carnet-nombre-completo">{data.nombreCompleto}</p>
-          <p className="carnet-especialidad">{data.especialidad}</p>
-
-          <div className="carnet-detail">
-            <span className="carnet-label">DNI</span>
-            <span className="carnet-value">{data.dni}</span>
+          <div className="carnet-info">
+            <p className="carnet-nombre">{data.apellidoPaterno}</p>
+            <p className="carnet-nombre">{data.apellidoMaterno}</p>
+            <p className="carnet-nombre">{data.nombreCompleto}</p>
+            <p className="carnet-especialidad">{data.especialidad}</p>
+            <p className="carnet-dni">DNI: {data.dni}</p>
           </div>
 
-          <div className="carnet-detail">
-            <span className="carnet-label">N° Reg. CIP</span>
-            <span className="carnet-value">{data.numeroRegistro}</span>
+          <div className="carnet-footer">
+            <span className="carnet-footer-label">Nº Reg. CIP:</span>
+            <span className="carnet-footer-value">{data.numeroRegistro}</span>
           </div>
         </div>
       </div>
