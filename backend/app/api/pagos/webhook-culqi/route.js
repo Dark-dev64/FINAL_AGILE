@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
+import { enviarComprobantePago } from "../../../../utils/comprobantePago";
 
 export async function POST(request) {
   const evento = await request.json();
@@ -10,7 +11,7 @@ export async function POST(request) {
     return ok({ recibido: true });
   }
 
-  // 👇 evento.data viene como STRING, hay que parsearlo
+  // evento.data viene como STRING JSON, hay que parsearlo
   const data = JSON.parse(evento.data);
 
   const orderId = data.id;
@@ -21,6 +22,7 @@ export async function POST(request) {
     return ok({ recibido: true });
   }
 
+  // Si el pago vino de un Link (no de una Orden normal), lo eliminamos para que no se reutilice
   if (orderId.startsWith("link_")) {
     await fetch(`https://api.culqi.com/v2/links/${orderId}`, {
       method: "DELETE",
@@ -74,7 +76,20 @@ export async function POST(request) {
     return fail(error.message, 500);
   }
 
+  // Limpieza: ya no necesitamos la orden temporal
   await supabaseAdmin.from("ordenes_pago_pendientes").delete().eq("id_orden_temp", ordenTemp.id_orden_temp);
+
+  // Enviar comprobante de pago (yape/plin) por correo y/o WhatsApp,
+  // según los datos de contacto que el colegiado haya registrado.
+  // No bloqueamos la respuesta del webhook si el envío falla.
+  enviarComprobantePago({
+    nombreCompleto: form.nombre_completo,
+    dni: form.dni,
+    correo: form.correo || null,
+    telefono: form.telefono || null,
+    metodoPago: metodoDetectado,
+    monto: ordenTemp.monto,
+  }).catch((err) => console.error("❌ Error inesperado enviando comprobante:", err.message));
 
   console.log("✅ Solicitud creada:", resultado[0]);
   return ok({ solicitud_creada: resultado[0] });
