@@ -8,7 +8,6 @@ import {
   FaEye,
   FaEyeSlash,
   FaShieldAlt,
-  FaArrowLeft,
 } from "react-icons/fa";
 import "../styles/Auth.css";
 
@@ -63,14 +62,6 @@ function CambiarPassword() {
   return (
     <section className="auth-page">
       <div className="auth-container">
-        <button
-          type="button"
-          className="btn-volver"
-          onClick={() => navigate(ROLES[session.rol] || "/")}
-        >
-          <FaArrowLeft /> Volver a mi panel
-        </button>
-
         <div className="auth-brand">
           <FaShieldAlt className="auth-brand-icon" />
           <h2>CIP</h2>
