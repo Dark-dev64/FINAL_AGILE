@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // Orígenes permitidos
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
-  "https://cip-estudiantil.netlify.app",
+  "https://finalcip.netlify.app",
 ];
 
 export function middleware(request) {
