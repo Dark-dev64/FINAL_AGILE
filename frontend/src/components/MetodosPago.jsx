@@ -57,10 +57,20 @@ function MetodosPago({
     intervaloRef.current = setInterval(async () => {
       try {
         const res = await api.get(`/pagos/estado/${externalReference}`);
-        if (res.data.data.estado_pago === "pagado") {
+        const { estado_pago, motivo, motivo_codigo } = res.data.data;
+
+        if (estado_pago === "pagado") {
           clearInterval(intervaloRef.current);
           setFeedback({ type: "success", message: mensajeExitoPolling });
           onExito?.();
+        } else if (estado_pago === "rechazado") {
+          clearInterval(intervaloRef.current);
+          setFeedback({
+            type: "error",
+            message: `Mercado Pago rechazó el pago: ${motivo}${motivo_codigo ? ` (${motivo_codigo})` : ""} Puedes intentar de nuevo.`,
+          });
+          setPreferenciaMP(null);
+          setMostrarBrick(false);
         }
       } catch {
         // Reintento silencioso mientras Mercado Pago confirma la transacción.

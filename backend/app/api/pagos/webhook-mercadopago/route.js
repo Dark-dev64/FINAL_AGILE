@@ -81,7 +81,22 @@ export async function POST(request) {
   }
 
   if (pago.status !== "approved") {
-    console.log(`📦 Pago ${paymentId}, estado: ${pago.status} (no aprobado aún)`);
+    console.log(`📦 Pago ${paymentId}, estado: ${pago.status} (no aprobado aún), detalle: ${pago.status_detail}`);
+
+    // "rejected" es un estado final: el pago no se va a aprobar solo.
+    // "pending"/"in_process"/etc. sí pueden resolverse más tarde, así que
+    // esos los dejamos como "pendiente" (comportamiento actual, sin cambios).
+    if (pago.status === "rejected" && pago.external_reference) {
+      const { error: errorRechazo } = await supabaseAdmin
+        .from("ordenes_pago_pendientes")
+        .update({ estado: "rechazado", motivo_rechazo: pago.status_detail || "rejected" })
+        .eq("external_reference", pago.external_reference);
+
+      if (errorRechazo) {
+        console.error("❌ Error registrando el rechazo del pago:", errorRechazo.message);
+      }
+    }
+
     return ok({ recibido: true });
   }
 

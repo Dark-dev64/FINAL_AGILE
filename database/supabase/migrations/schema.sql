@@ -1187,3 +1187,13 @@ CREATE TABLE notificaciones_web (
 
 CREATE INDEX idx_notificaciones_web_id_usuario ON notificaciones_web(id_usuario);
 CREATE INDEX idx_notificaciones_web_leida ON notificaciones_web(leida);
+
+-- ==========================================================
+-- Registrar el motivo cuando Mercado Pago RECHAZA un pago, para poder
+-- mostrárselo al usuario en vez de dejarlo esperando confirmación para
+-- siempre (antes solo se manejaba el caso "aprobado", los rechazos se
+-- ignoraban silenciosamente en el webhook).
+-- ==========================================================
+ALTER TABLE ordenes_pago_pendientes
+    ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'rechazado')),
+    ADD COLUMN motivo_rechazo VARCHAR(60);
