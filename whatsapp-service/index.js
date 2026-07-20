@@ -62,6 +62,8 @@ app.post("/send", async (req, res) => {
   }
 });
 
-app.listen(4000, () => {
-  console.log("🟢 Servicio de WhatsApp escuchando en http://localhost:4000");
+const PORT = process.env.PORT || 4000;
+
+app.listen(PORT, () => {
+  console.log(`🟢 Servicio de WhatsApp escuchando en el puerto ${PORT}`);
 });
