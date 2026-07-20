@@ -4,7 +4,9 @@ import { preferenceClient } from "../../../../../lib/mercadopagoClient";
 import { enviarCorreo } from "../../../../../lib/emailClient";
 import { enviarWhatsApp } from "../../../../../lib/whatsappClient";
 
-const MONTO_MATRICULA = 6.0;
+const MONTO_MENSUALIDAD = 3.0;
+const MONTO_CARNET = 1.0;
+const MONTO_MATRICULA = MONTO_MENSUALIDAD + MONTO_CARNET;
 
 export async function POST(request) {
   const datosFormulario = await request.json();
@@ -23,6 +25,12 @@ export async function POST(request) {
             title: `Matrícula CIP - DNI ${datosFormulario.dni}`,
             quantity: 1,
             unit_price: MONTO_MATRICULA,
+            currency_id: "PEN",
+          },
+          {
+            title: `Emisión de carnet - DNI ${datosFormulario.dni}`,
+            quantity: 1,
+            unit_price: MONTO_CARNET,
             currency_id: "PEN",
           },
         ],
@@ -58,13 +66,19 @@ export async function POST(request) {
   if (error) return fail(error.message, 500);
 
   // Si el cajero eligió explícitamente "enviar link" (equivalente al Link de Culqi)
-  if (datosFormulario.enviar_link) {
-    const mensaje = `Hola ${datosFormulario.nombre_completo}, completa el pago de tu matrícula CIP aquí: ${preferencia.init_point}`;
+  if (datosFormulario.enviar_link_canal) {
+    const mensajeWhatsApp = `Hola ${datosFormulario.nombre_completo}, completa el pago de tu matrícula CIP aquí: ${preferencia.init_point}`;
+
     try {
-      if (datosFormulario.correo) {
-        await enviarCorreo(datosFormulario.correo, mensaje);
-      } else if (datosFormulario.telefono) {
-        await enviarWhatsApp(datosFormulario.telefono, mensaje);
+      if (datosFormulario.enviar_link_canal === "correo" && datosFormulario.correo) {
+        await enviarLinkPagoCorreo(datosFormulario.correo, {
+          nombreCompleto: datosFormulario.nombre_completo,
+          dni: datosFormulario.dni,
+          monto: MONTO_MATRICULA,
+          linkPago: preferencia.init_point,
+        });
+      } else if (datosFormulario.enviar_link_canal === "whatsapp" && datosFormulario.telefono) {
+        await enviarWhatsApp(datosFormulario.telefono, mensajeWhatsApp);
       }
     } catch (errNotificacion) {
       console.error("Error enviando notificación de pago:", errNotificacion.message);
@@ -79,3 +93,4 @@ export async function POST(request) {
     },
   });
 }
+

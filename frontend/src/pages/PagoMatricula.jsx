@@ -11,12 +11,15 @@ import {
   FaExclamationCircle,
   FaSpinner,
   FaArrowLeft,
-  FaPaperPlane,
+  FaEnvelope,
+  FaWhatsapp,
   FaDesktop,
 } from "react-icons/fa";
 import "../styles/PagoMatricula.css";
 
-const MONTO_MATRICULA = 6.0;
+const MONTO_MENSUALIDAD = 3.0;
+const MONTO_CARNET = 1.0; // prueba
+const MONTO_MATRICULA = MONTO_MENSUALIDAD + MONTO_CARNET; // 4.0
 
 const METODOS = [
   { valor: "efectivo", label: "Efectivo", icono: FaMoneyBillWave },
@@ -70,7 +73,7 @@ function PagoMatricula() {
     }, 3000);
   };
 
-  const crearPreferencia = async (enviarLink) => {
+  const crearPreferencia = async (enviarLinkCanal) => {
     const [datosFoto, datosTitulo] = await Promise.all([
       subirFotoCarnet(fotoFile.file, form.dni),
       subirTitulo(tituloFile, form.dni),
@@ -87,7 +90,7 @@ function PagoMatricula() {
       titulo_key: datosTitulo.titulo_key,
       titulo_content_type: datosTitulo.titulo_content_type,
       titulo_size_bytes: datosTitulo.titulo_size_bytes,
-      enviar_link: enviarLink,
+      enviar_link_canal: enviarLinkCanal || null,
     });
 
     return response.data.data.preferencia;
@@ -129,16 +132,16 @@ function PagoMatricula() {
     }
   };
 
-  const handleEnviarLink = async () => {
+  const handleEnviarLink = async (canal) => {
     setFeedback(null);
     setProcesando(true);
     try {
-      const preferencia = await crearPreferencia(true);
+      const preferencia = await crearPreferencia(canal);
       setPreferenciaMP(preferencia);
-      const destino = form.correo ? "correo" : "WhatsApp";
+      const destino = canal === "correo" ? "correo" : "WhatsApp";
       setFeedback({
         type: "success",
-        message: `Link de pago enviado a su ${destino}. Esperando confirmación...`,
+        message: `Link de pago enviado por ${destino}. Esperando confirmación...`,
       });
       iniciarPolling(preferencia.external_reference);
     } catch (err) {
@@ -207,6 +210,7 @@ function PagoMatricula() {
         <div className="pago-monto">
           <span>Monto a pagar</span>
           <strong>S/ {MONTO_MATRICULA.toFixed(2)}</strong>
+          <small>Mensualidad S/ {MONTO_MENSUALIDAD.toFixed(2)} + Carnet S/ {MONTO_CARNET.toFixed(2)}</small>
         </div>
 
         <div className="pago-metodos">
@@ -253,11 +257,12 @@ function PagoMatricula() {
               }}
               customization={{
                 paymentMethods: {
-                  creditCard: "excluded",
-                  debitCard: "excluded",
+                  creditCard: "all",
+                  debitCard: "all",
+                  bankTransfer: "all",
+                  digitalWallet: "all",
                   ticket: "excluded",
-                  // sin bankTransfer ni digitalWallet: dejamos que MP
-                  // muestre los métodos disponibles para PE (Yape, etc.)
+                  mercadoPago: "all",
                 },
               }}
               onReady={() => { }}
@@ -306,9 +311,24 @@ function PagoMatricula() {
               <button className="submit-button" onClick={handleCobrarConQR} disabled={procesando}>
                 <FaQrcode /> Cobrar aquí con QR
               </button>
-              <button className="submit-button secundario" onClick={handleEnviarLink} disabled={procesando}>
-                <FaPaperPlane /> Enviar link {form.correo ? "al correo" : "por WhatsApp"}
-              </button>
+              {form.correo && (
+                <button
+                  className="submit-button secundario"
+                  onClick={() => handleEnviarLink("correo")}
+                  disabled={procesando}
+                >
+                  <FaEnvelope /> Enviar link al correo
+                </button>
+              )}
+              {form.telefono && (
+                <button
+                  className="submit-button secundario whatsapp"
+                  onClick={() => handleEnviarLink("whatsapp")}
+                  disabled={procesando}
+                >
+                  <FaWhatsapp /> Enviar link por WhatsApp
+                </button>
+              )}
             </div>
           )
         )}

@@ -221,3 +221,12 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.submit-button.whatsapp {
+  background-color: #25D366;
+  border-color: #25D366;
+}
+
+.submit-button.whatsapp:hover {
+  background-color: #1EBE57;
+}
