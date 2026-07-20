@@ -1,14 +1,13 @@
 import { supabaseAdmin } from "../../../../../lib/supabaseClient";
-import { ok, fail } from "../../../../../utils/apiResponse";
+import { ok } from "../../../../../utils/apiResponse";
 
 export async function GET(request, { params }) {
-  const { culqiOrderId } = await params;
+  const { externalReference } = await params;
 
-  // Si la orden temporal YA NO existe, es porque el webhook la procesó y creó la solicitud
   const { data: ordenTemp } = await supabaseAdmin
     .from("ordenes_pago_pendientes")
     .select("id_orden_temp")
-    .eq("culqi_order_id", culqiOrderId)
+    .eq("external_reference", externalReference)
     .maybeSingle();
 
   return ok({ estado_pago: ordenTemp ? "pendiente" : "pagado" });

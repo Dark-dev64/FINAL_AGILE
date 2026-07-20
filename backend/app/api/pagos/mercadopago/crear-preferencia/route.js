@@ -1,0 +1,77 @@
+import { supabaseAdmin } from "../../../../../lib/supabaseClient";
+import { ok, fail } from "../../../../../utils/apiResponse";
+import { preferenceClient } from "../../../../../lib/mercadopagoClient";
+import { enviarCorreo } from "../../../../../lib/emailClient";
+import { enviarWhatsApp } from "../../../../../lib/whatsappClient";
+
+const MONTO_MATRICULA = 6.0;
+
+export async function POST(request) {
+  const datosFormulario = await request.json();
+  const externalReference = `SOL-${datosFormulario.dni}-${Date.now()}`;
+
+  let preferencia;
+  try {
+    preferencia = await preferenceClient.create({
+      body: {
+        items: [
+          {
+            title: `Matrícula CIP - DNI ${datosFormulario.dni}`,
+            quantity: 1,
+            unit_price: MONTO_MATRICULA,
+            currency_id: "PEN",
+          },
+        ],
+        payer: {
+          name: datosFormulario.nombre_completo,
+          surname: `${datosFormulario.apellido_paterno} ${datosFormulario.apellido_materno}`,
+          email: datosFormulario.correo || undefined,
+        },
+        external_reference: externalReference,
+        back_urls: {
+          success: `${process.env.FRONTEND_URL}/pago-colegiado/${externalReference}`,
+          pending: `${process.env.FRONTEND_URL}/pago-colegiado/${externalReference}`,
+          failure: `${process.env.FRONTEND_URL}/pago-colegiado/${externalReference}`,
+        },
+        auto_return: "approved",
+        notification_url: `${process.env.APP_URL}/api/pagos/webhook-mercadopago`,
+      },
+    });
+  } catch (err) {
+    console.error("Error creando preferencia de Mercado Pago:", err.message);
+    return fail("No se pudo generar la preferencia de pago.", 500);
+  }
+
+  const { error } = await supabaseAdmin
+    .from("ordenes_pago_pendientes")
+    .insert({
+      mercadopago_preference_id: preferencia.id,
+      external_reference: externalReference,
+      datos_solicitud: datosFormulario,
+      monto: MONTO_MATRICULA,
+    });
+
+  if (error) return fail(error.message, 500);
+
+  // Si el cajero eligió explícitamente "enviar link" (equivalente al Link de Culqi)
+  if (datosFormulario.enviar_link) {
+    const mensaje = `Hola ${datosFormulario.nombre_completo}, completa el pago de tu matrícula CIP aquí: ${preferencia.init_point}`;
+    try {
+      if (datosFormulario.correo) {
+        await enviarCorreo(datosFormulario.correo, mensaje);
+      } else if (datosFormulario.telefono) {
+        await enviarWhatsApp(datosFormulario.telefono, mensaje);
+      }
+    } catch (errNotificacion) {
+      console.error("Error enviando notificación de pago:", errNotificacion.message);
+    }
+  }
+
+  return ok({
+    preferencia: {
+      id: preferencia.id,
+      init_point: preferencia.init_point,
+      external_reference: externalReference,
+    },
+  });
+}

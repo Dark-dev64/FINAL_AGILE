@@ -1044,3 +1044,18 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+ALTER TABLE ordenes_pago_pendientes
+    RENAME COLUMN culqi_order_id TO mercadopago_preference_id;
+
+ALTER TABLE ordenes_pago_pendientes
+    ADD COLUMN external_reference VARCHAR(100);
+
+CREATE UNIQUE INDEX idx_ordenes_pago_external_reference ON ordenes_pago_pendientes(external_reference);
+
+ALTER TABLE pagos
+    RENAME COLUMN culqi_order_id TO mercadopago_payment_id;
+
+ALTER TABLE pagos
+    DROP CONSTRAINT IF EXISTS pagos_metodo_pago_check;
+
