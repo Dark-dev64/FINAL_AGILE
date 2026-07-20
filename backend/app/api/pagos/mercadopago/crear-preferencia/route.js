@@ -10,6 +10,10 @@ export async function POST(request) {
   const datosFormulario = await request.json();
   const externalReference = `SOL-${datosFormulario.dni}-${Date.now()}`;
 
+  console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+  console.log("APP_URL:", process.env.APP_URL);
+  console.log("success URL:", `${process.env.FRONTEND_URL}/pago-colegiado/${externalReference}`);
+
   let preferencia;
   try {
     preferencia = await preferenceClient.create({
