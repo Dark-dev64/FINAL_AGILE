@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { initMercadoPago, Payment } from "@mercadopago/sdk-react";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
 import { subirFotoCarnet, subirTitulo } from "../services/uploadService";
@@ -22,6 +23,8 @@ const METODOS = [
   { valor: "mercadopago", label: "Mercado Pago", icono: FaQrcode },
 ];
 
+initMercadoPago(import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY, { locale: "es-PE" });
+
 function PagoMatricula() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,6 +36,7 @@ function PagoMatricula() {
   const [procesando, setProcesando] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [preferenciaMP, setPreferenciaMP] = useState(null);
+  const [mostrarBrick, setMostrarBrick] = useState(false);
   const intervaloRef = useRef(null);
 
   const esAdmin = session?.rol === "admin";
@@ -96,6 +100,24 @@ function PagoMatricula() {
       const preferencia = await crearPreferencia(false);
       setPreferenciaMP(preferencia);
       window.open(preferencia.init_point, "_blank");
+      iniciarPolling(preferencia.external_reference);
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.error || err.message || "No se pudo generar el pago.",
+      });
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const handleCobrarConQR = async () => {
+    setFeedback(null);
+    setProcesando(true);
+    try {
+      const preferencia = await crearPreferencia(false);
+      setPreferenciaMP(preferencia);
+      setMostrarBrick(true);
       iniciarPolling(preferencia.external_reference);
     } catch (err) {
       setFeedback({
@@ -215,10 +237,44 @@ function PagoMatricula() {
           </label>
         )}
 
-        {preferenciaMP && (
+        {preferenciaMP && !mostrarBrick && (
           <div className="qr-placeholder">
             <FaQrcode className="qr-icon pulse" />
             <p>Completa el pago en Mercado Pago. Esperando confirmación...</p>
+          </div>
+        )}
+
+        {mostrarBrick && preferenciaMP && (
+          <div className="qr-placeholder">
+            <Payment
+              initialization={{
+                amount: MONTO_MATRICULA,
+                preferenceId: preferenciaMP.id,
+              }}
+              customization={{
+                paymentMethods: {
+                  creditCard: "excluded",
+                  debitCard: "excluded",
+                  ticket: "excluded",
+                  // sin bankTransfer ni digitalWallet: dejamos que MP
+                  // muestre los métodos disponibles para PE (Yape, etc.)
+                },
+              }}
+              onReady={() => { }}
+              onError={(error) => {
+                console.error("Error en Brick de Mercado Pago:", error);
+                setFeedback({ type: "error", message: "No se pudo cargar el pago con QR." });
+              }}
+              onSubmit={async ({ formData }) => {
+                try {
+                  await api.post("/pagos/mercadopago/procesar-pago", formData);
+                  // el polling que ya está corriendo detecta el "pagado" vía webhook
+                } catch (err) {
+                  setFeedback({ type: "error", message: "No se pudo procesar el pago con QR." });
+                }
+              }}
+            />
+            <p>Escanea el QR con tu billetera digital para completar el pago.</p>
           </div>
         )}
 
@@ -244,10 +300,11 @@ function PagoMatricula() {
             )}
           </button>
         ) : (
-          !preferenciaMP && (
+          !preferenciaMP &&
+          !mostrarBrick && (
             <div className="pago-opciones">
-              <button className="submit-button" onClick={handleAbrirCheckout} disabled={procesando}>
-                <FaDesktop /> Pagar con Mercado Pago
+              <button className="submit-button" onClick={handleCobrarConQR} disabled={procesando}>
+                <FaQrcode /> Cobrar aquí con QR
               </button>
               <button className="submit-button secundario" onClick={handleEnviarLink} disabled={procesando}>
                 <FaPaperPlane /> Enviar link {form.correo ? "al correo" : "por WhatsApp"}

@@ -10,6 +10,11 @@ function validarFirmaWebhook(request, dataId) {
 
   if (!xSignature || !xRequestId) return false;
 
+  if (!process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+    console.error("❌ MERCADOPAGO_WEBHOOK_SECRET no está configurado.");
+    return false;
+  }
+
   const parts = Object.fromEntries(
     xSignature.split(",").map((p) => p.trim().split("=").map((s) => s.trim()))
   );
@@ -19,12 +24,17 @@ function validarFirmaWebhook(request, dataId) {
   // Manifest según la doc oficial de Mercado Pago (id en minúsculas)
   const manifest = `id:${String(dataId).toLowerCase()};request-id:${xRequestId};ts:${parts.ts};`;
 
-  const hmac = crypto
+  const hmacEsperado = crypto
     .createHmac("sha256", process.env.MERCADOPAGO_WEBHOOK_SECRET)
     .update(manifest)
     .digest("hex");
 
-  return hmac === parts.v1;
+  // Comparación en tiempo constante para evitar timing attacks
+  const bufferEsperado = Buffer.from(hmacEsperado, "hex");
+  const bufferRecibido = Buffer.from(parts.v1, "hex");
+
+  if (bufferEsperado.length !== bufferRecibido.length) return false;
+  return crypto.timingSafeEqual(bufferEsperado, bufferRecibido);
 }
 
 export async function POST(request) {
@@ -32,7 +42,14 @@ export async function POST(request) {
   // Mercado Pago también manda data.id como query param en algunas notificaciones
   const dataIdQuery = url.searchParams.get("data.id");
 
-  const evento = await request.json();
+  let evento;
+  try {
+    evento = await request.json();
+  } catch (err) {
+    console.error("❌ Body del webhook no es JSON válido:", err.message);
+    return fail("Body inválido.", 400);
+  }
+
   console.log("🔔 Webhook Mercado Pago recibido:", JSON.stringify(evento, null, 2));
 
   const paymentId = evento?.data?.id || dataIdQuery || evento?.resource;
@@ -63,15 +80,27 @@ export async function POST(request) {
 
   const externalReference = pago.external_reference;
 
+  if (!externalReference) {
+    console.error("❌ El pago aprobado no trae external_reference:", paymentId);
+    return fail("Pago sin referencia externa.", 400);
+  }
+
   const { data: ordenTemp, error: errorOrden } = await supabaseAdmin
     .from("ordenes_pago_pendientes")
     .select("*")
     .eq("external_reference", externalReference)
-    .single();
+    .maybeSingle();
 
-  if (errorOrden || !ordenTemp) {
-    console.error("❌ No se encontró la orden pendiente:", externalReference, errorOrden);
-    return fail("No se encontró la orden pendiente correspondiente.", 404);
+  if (errorOrden) {
+    console.error("❌ Error consultando la orden pendiente:", errorOrden.message);
+    return fail("Error consultando la orden pendiente.", 500);
+  }
+
+  if (!ordenTemp) {
+    // Reintento del webhook para un pago que ya se procesó y cuya orden
+    // ya fue borrada. No es un error, solo confirmamos recepción.
+    console.log(`ℹ️ Sin orden pendiente para ${externalReference}; probablemente ya procesada.`);
+    return ok({ recibido: true, ya_procesado: true });
   }
 
   const form = ordenTemp.datos_solicitud;
