@@ -491,7 +491,7 @@ export async function enviarPasswordCambiadaCorreo(destinatario, { nombreComplet
 // una confirmación de pago, es una invitación a pagar.
 // ==========================================================
 
-function construirHtmlLinkPago({ nombreCompleto, dni, monto, linkPago }) {
+function construirHtmlLinkPago({ nombreCompleto, dni, monto, linkPago, concepto = "tu matrícula" }) {
   const montoFormateado = formatearMonto(monto);
 
   return `
@@ -532,8 +532,8 @@ function construirHtmlLinkPago({ nombreCompleto, dni, monto, linkPago }) {
                 Hola, ${nombreCompleto}
               </h1>
               <p style="margin: 0 0 24px; font-size: 14px; color: #555555; line-height: 1.6;">
-                Para completar tu trámite de colegiatura (DNI: ${dni}), realiza el pago
-                de tu matrícula usando el botón de abajo.
+                Para regularizar tu situación (DNI: ${dni}), realiza el pago
+                de ${concepto} usando el botón de abajo.
               </p>
 
               <!-- Monto -->
@@ -553,7 +553,7 @@ function construirHtmlLinkPago({ nombreCompleto, dni, monto, linkPago }) {
                 <tr>
                   <td align="center">
                     <a href="${linkPago}" target="_blank" style="display: inline-block; background-color: #E31E24; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 36px; border-radius: 8px;">
-                      Pagar matrícula ahora
+                      Pagar ahora
                     </a>
                   </td>
                 </tr>
@@ -593,9 +593,10 @@ function construirHtmlLinkPago({ nombreCompleto, dni, monto, linkPago }) {
  */
 export async function enviarLinkPagoCorreo(destinatario, datosLink) {
   const montoFormateado = formatearMonto(datosLink.monto);
+  const concepto = datosLink.concepto || "tu matrícula";
 
   const textoPlano =
-    `Hola ${datosLink.nombreCompleto}, completa el pago de tu matrícula CIP ` +
+    `Hola ${datosLink.nombreCompleto}, completa el pago de ${concepto} CIP ` +
     `(DNI: ${datosLink.dni}) por S/ ${montoFormateado} aquí: ${datosLink.linkPago}`;
 
   await transporterGmail.sendMail({

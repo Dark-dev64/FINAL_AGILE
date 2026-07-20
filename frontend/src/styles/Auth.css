@@ -231,20 +231,6 @@
   outline-offset: 2px;
 }
 
-.checkbox-group .checkbox-label {
-  font-weight: 400;
-}
-
-.checkbox-group .checkbox-label a {
-  color: var(--color-red);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.checkbox-group .checkbox-label a:hover {
-  text-decoration: underline;
-}
-
 .forgot-link {
   color: var(--color-red);
   text-decoration: none;
@@ -344,16 +330,6 @@
 .auth-footer-text a:hover {
   color: #a0151a;
   text-decoration: underline;
-}
-
-.footer-arrow {
-  font-size: 0.7rem;
-  margin-left: 0.25rem;
-  transition: transform 0.2s ease;
-}
-
-.auth-footer-text a:hover .footer-arrow {
-  transform: translateX(4px);
 }
 
 /* ===== SPINNER ===== */

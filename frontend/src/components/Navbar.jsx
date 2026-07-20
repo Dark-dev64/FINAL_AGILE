@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { 
-  FaHome, 
-  FaUsers, 
-  FaCogs, 
+import {
+  FaHome,
+  FaUsers,
+  FaCogs,
   FaEnvelope,
-  FaUserPlus,
   FaSignInAlt,
   FaBars,
   FaTimes
@@ -61,10 +60,6 @@ function Navbar() {
         </NavLink>
 
         <div className="navbar-auth">
-          <Link to="/register" onClick={closeMenu} className="navbar-register">
-            <FaUserPlus className="auth-icon" />
-            <span>Registrarse</span>
-          </Link>
           <Link to="/login" onClick={closeMenu} className="navbar-cta">
             <FaSignInAlt className="auth-icon" />
             <span>Ingresar</span>

@@ -1,0 +1,21 @@
+.deuda-seleccionable {
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  border: 1px solid transparent;
+}
+
+.deuda-seleccionable:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.deuda-seleccionable:has(.deuda-checkbox:checked) {
+  border-color: var(--color-red);
+}
+
+.deuda-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-red);
+  cursor: pointer;
+}

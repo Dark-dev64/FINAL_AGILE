@@ -22,9 +22,9 @@ export async function POST(request) {
       body: {
         items: [
           {
-            title: `Matrícula CIP - DNI ${datosFormulario.dni}`,
+            title: `Mensualidad CIP - DNI ${datosFormulario.dni}`,
             quantity: 1,
-            unit_price: MONTO_MATRICULA,
+            unit_price: MONTO_MENSUALIDAD,
             currency_id: "PEN",
           },
           {

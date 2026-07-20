@@ -1,7 +1,10 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
 
-const MONTO_MATRICULA = 6.00; // Hardcodeado en el backend, no confiamos en el monto del cliente
+// Hardcodeado en el backend, no confiamos en el monto del cliente.
+const MONTO_MENSUALIDAD = 3.0;
+const MONTO_CARNET = 1.0;
+const MONTO_MATRICULA = MONTO_MENSUALIDAD + MONTO_CARNET; // 4.0
 
 export async function POST(request) {
   const body = await request.json();

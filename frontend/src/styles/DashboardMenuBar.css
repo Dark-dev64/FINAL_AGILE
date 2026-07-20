@@ -70,6 +70,13 @@
   font-size: 0.9rem;
 }
 
+.menubar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 .menubar-logout {
   display: inline-flex;
   align-items: center;

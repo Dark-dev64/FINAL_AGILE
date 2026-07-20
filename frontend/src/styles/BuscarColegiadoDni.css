@@ -1,0 +1,125 @@
+.buscar-colegiado-dni {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.dni-search-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.dni-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: var(--color-bg);
+  border: 2px solid #e8e5e0;
+  border-radius: 999px;
+  padding: 0.3rem 0.3rem 0.3rem 1.1rem;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.dni-search-row:focus-within {
+  border-color: var(--color-red);
+  background: var(--color-white);
+  box-shadow: 0 0 0 4px rgba(196, 30, 34, 0.08);
+}
+
+.dni-search-icon {
+  color: var(--color-gold);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.dni-search-row input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--color-charcoal);
+  padding: 0.65rem 0;
+}
+
+.dni-search-row input::placeholder {
+  color: #b8b3ab;
+  letter-spacing: normal;
+}
+
+.dni-search-row input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dni-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-red);
+  color: var(--color-white);
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.dni-search-btn:hover:not(:disabled) {
+  background: #8b1a1a;
+}
+
+.dni-search-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.dni-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dni-search-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #B0201F;
+  background: #FDECEC;
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+}
+
+@media (max-width: 480px) {
+  .dni-search-row {
+    flex-wrap: wrap;
+    border-radius: var(--radius);
+    padding: 0.7rem;
+  }
+
+  .dni-search-row input {
+    order: 1;
+    width: 100%;
+    padding: 0.4rem 0;
+  }
+
+  .dni-search-icon {
+    order: 0;
+  }
+
+  .dni-search-btn {
+    order: 2;
+    width: 100%;
+  }
+}

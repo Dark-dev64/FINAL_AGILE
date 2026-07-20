@@ -38,6 +38,32 @@
   font-size: 0.95rem;
 }
 
+.borrar-todo-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.borrar-todo-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid #e0a0a0;
+  color: #B0201F;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.borrar-todo-btn:hover {
+  background: #FDECEC;
+  border-color: #B0201F;
+}
+
 /* ===== FORM ===== */
 .registro-form {
   background: var(--color-white);

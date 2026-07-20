@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
 import { enviarNotificacionRechazo } from "../../../../utils/notificacionRechazo";
+import { crearNotificacionWeb } from "../../../../lib/notificacionesWeb";
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -64,6 +65,13 @@ export async function PATCH(request, { params }) {
     await fetch(`${process.env.APP_URL || "http://localhost:3000"}/api/credenciales/procesar`, {
       method: "POST",
     });
+
+    crearNotificacionWeb({
+      id_usuario: data.id_usuario_colegiado,
+      tipo: "solicitud_aprobada",
+      titulo: "¡Tu solicitud fue aprobada!",
+      mensaje: "Ya eres colegiado habilitado del CIP. Revisa tu correo o WhatsApp para ver tus credenciales de acceso.",
+    }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
   }
 
   if (estado_solicitud === "rechazada") {
@@ -88,6 +96,15 @@ export async function PATCH(request, { params }) {
       telefono: data.telefono || null,
       motivo: observacionLimpia,
     }).catch((err) => console.error("❌ Error inesperado notificando rechazo:", err.message));
+
+    // El solicitante rechazado todavía no tiene cuenta de usuario;
+    // se notifica al cajero que registró la solicitud.
+    crearNotificacionWeb({
+      id_usuario: data.id_usuario_cajero,
+      tipo: "solicitud_rechazada",
+      titulo: "Solicitud rechazada",
+      mensaje: `El registro de ${data.nombre_completo} (DNI ${data.dni}) fue rechazado. Motivo: ${observacionLimpia}`,
+    }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
   }
 
   return ok(data);

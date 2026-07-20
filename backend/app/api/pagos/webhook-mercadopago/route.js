@@ -3,6 +3,13 @@ import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
 import { paymentClient } from "../../../../lib/mercadopagoClient";
 import { enviarComprobantePago } from "../../../../utils/comprobantePago";
+import { crearNotificacionWeb } from "../../../../lib/notificacionesWeb";
+
+const TIPO_PAGO_LABELS = {
+  inscripcion: "matrícula",
+  mensualidad: "mensualidad",
+  otro: "pago",
+};
 
 function validarFirmaWebhook(request, dataId) {
   const xSignature = request.headers.get("x-signature");
@@ -103,6 +110,10 @@ export async function POST(request) {
     return ok({ recibido: true, ya_procesado: true });
   }
 
+  if (!ordenTemp.datos_solicitud) {
+    return procesarPagoExistente(ordenTemp, paymentId);
+  }
+
   const form = ordenTemp.datos_solicitud;
 
   const { data: resultado, error } = await supabaseAdmin.rpc("fn_registrar_solicitud_con_pago", {
@@ -148,4 +159,61 @@ export async function POST(request) {
 
   console.log("✅ Solicitud creada:", resultado[0]);
   return ok({ solicitud_creada: resultado[0] });
+}
+
+async function procesarPagoExistente(ordenTemp, paymentId) {
+  const { data: pagosActualizados, error } = await supabaseAdmin
+    .from("pagos")
+    .update({
+      estado_pago: "pagado",
+      fecha_pago: new Date().toISOString(),
+      metodo_pago: "mercadopago",
+      // Si fue un pago self-service (el colegiado pagó desde su propio panel),
+      // no hay cajero: no pisar el id_usuario_cajero existente (columna NOT NULL).
+      ...(ordenTemp.id_usuario_cajero ? { id_usuario_cajero: ordenTemp.id_usuario_cajero } : {}),
+    })
+    .in("id_pago", ordenTemp.ids_pago)
+    .select("id_usuario_colegiado, tipo_pago");
+
+  if (error) {
+    console.error("❌ Error marcando pagos existentes como pagados:", error.message);
+    return fail(error.message, 500);
+  }
+
+  await supabaseAdmin.from("ordenes_pago_pendientes").delete().eq("id_orden_temp", ordenTemp.id_orden_temp);
+
+  const idColegiado = pagosActualizados?.[0]?.id_usuario_colegiado;
+  if (idColegiado) {
+    const { data: solicitud } = await supabaseAdmin
+      .from("solicitudes")
+      .select("nombre_completo, dni, correo, telefono")
+      .eq("id_usuario_colegiado", idColegiado)
+      .eq("estado_solicitud", "aprobada")
+      .single();
+
+    if (solicitud) {
+      enviarComprobantePago({
+        nombreCompleto: solicitud.nombre_completo,
+        dni: solicitud.dni,
+        correo: solicitud.correo || null,
+        telefono: solicitud.telefono || null,
+        metodoPago: "mercadopago",
+        monto: ordenTemp.monto,
+        orderNumber: String(paymentId),
+      }).catch((err) => console.error("❌ Error inesperado enviando comprobante:", err.message));
+    }
+
+    const esUnSoloTipo = pagosActualizados.every((p) => p.tipo_pago === pagosActualizados[0].tipo_pago);
+    const concepto = esUnSoloTipo ? TIPO_PAGO_LABELS[pagosActualizados[0].tipo_pago] ?? "pago" : "pago";
+
+    crearNotificacionWeb({
+      id_usuario: idColegiado,
+      tipo: "pago_confirmado",
+      titulo: "Pago confirmado",
+      mensaje: `Tu pago de S/ ${Number(ordenTemp.monto).toFixed(2)} (${concepto}) fue registrado correctamente.`,
+    }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+  }
+
+  console.log("✅ Pagos existentes marcados como pagados:", ordenTemp.ids_pago);
+  return ok({ pagos_actualizados: ordenTemp.ids_pago });
 }

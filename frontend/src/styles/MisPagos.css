@@ -2,6 +2,16 @@
   width: 100%;
   max-width: 700px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.lista-estado {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 1.5rem 0;
 }
 
 .deuda-card {
@@ -9,7 +19,6 @@
   border: 1px solid var(--color-red);
   border-radius: var(--radius);
   padding: 1.5rem;
-  margin-bottom: 2rem;
 }
 
 .deuda-card-header {
@@ -59,16 +68,147 @@
   border-top: 1px dashed rgba(176, 32, 31, 0.3);
 }
 
+.mensualidad-card {
+  background-color: #FDF3D6;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.mensualidad-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.mensualidad-icon {
+  color: #8A6D00;
+  font-size: 1.2rem;
+}
+
+.mensualidad-card-header h2 {
+  font-size: 1.05rem;
+  color: #8A6D00;
+}
+
+.mensualidad-monto {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #8A6D00;
+  font-family: var(--font-display);
+  margin-bottom: 0.35rem;
+}
+
+.mensualidad-detalle {
+  font-size: 0.85rem;
+  color: #8A6D00;
+  margin-bottom: 0.85rem;
+}
+
+.historial-card {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.historial-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .mis-pagos-subtitulo {
   font-size: 1rem;
   color: var(--color-charcoal);
-  margin-bottom: 1rem;
+}
+
+.historial-contador {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.filtros-row {
+  display: flex;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid #EFEDE8;
+}
+
+.filtro-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filtro-pill {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.filtro-pill:hover {
+  border-color: var(--color-red);
+}
+
+.filtro-pill.activo {
+  background: var(--color-red);
+  color: var(--color-white);
 }
 
 .pagos-lista {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.paginacion-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #E5E2DD;
+  background: var(--color-white);
+  color: var(--color-charcoal);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.paginacion-btn:hover:not(:disabled) {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
+.paginacion-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paginacion-info {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .pago-item {
@@ -126,6 +266,11 @@
 
   .pago-item-monto {
     order: 3;
+  }
+
+  .filtros-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

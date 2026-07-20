@@ -1,10 +1,15 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { FaHome, FaCreditCard, FaKey, FaSignOutAlt } from "react-icons/fa";
+import NotificacionesBell from "./NotificacionesBell";
+import { FaHome, FaCreditCard, FaKey, FaSignOutAlt, FaFileInvoiceDollar, FaHandHoldingUsd } from "react-icons/fa";
 import "../styles/DashboardMenuBar.css";
 
 const MENU_ITEMS = {
   colegiado: [{ label: "Mis pagos", to: "/dashboard-colegiado/pagos", icon: FaCreditCard }],
+  cajero: [
+    { label: "Pagar mensualidad", to: "/dashboard-cajero/pagar-mensualidad", icon: FaFileInvoiceDollar },
+    { label: "Pagar deudas", to: "/dashboard-cajero/pagar-deudas", icon: FaHandHoldingUsd },
+  ],
 };
 
 const ROLE_LABELS = {
@@ -47,10 +52,14 @@ function DashboardMenuBar() {
         </Link>
       </nav>
 
-      <button className="menubar-logout" onClick={handleLogout}>
-        <FaSignOutAlt aria-hidden="true" />
-        Cerrar sesión
-      </button>
+      <div className="menubar-actions">
+        <NotificacionesBell />
+
+        <button className="menubar-logout" onClick={handleLogout}>
+          <FaSignOutAlt aria-hidden="true" />
+          Cerrar sesión
+        </button>
+      </div>
     </header>
   );
 }

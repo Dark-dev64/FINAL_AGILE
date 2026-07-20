@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
-import { 
-  FaUser, 
-  FaLock, 
+import CredencialesModal from "../components/CredencialesModal";
+import {
+  FaUser,
+  FaLock,
   FaSignInAlt,
   FaEye,
   FaEyeSlash,
   FaShieldAlt,
-  FaArrowRight
 } from "react-icons/fa";
 import { MdEngineering } from "react-icons/md";
 import "../styles/Auth.css";
@@ -27,6 +27,8 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [credencialesInfo, setCredencialesInfo] = useState(null);
+  const [redirectPath, setRedirectPath] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -36,26 +38,47 @@ async function handleSubmit(e) {
   setIsLoading(true);
 
   try {
-    const response = await api.post("/auth/login", { 
-      username: username.trim(), 
-      password: password.trim() 
+    const response = await api.post("/auth/login", {
+      username: username.trim(),
+      password: password.trim()
     });
-    
+
     const usuario = response.data.data;
-    
+
     login(usuario);
-    
-    // Login normal: siempre va directo al dashboard según el rol
-    const redirectPath = ROLES[usuario.rol] || "/";
-    navigate(redirectPath);
-    
+
+    const destino = ROLES[usuario.rol] || "/";
+
+    // Primer(os) login(s) con la contraseña temporal autogenerada: se le
+    // muestra en la propia web lo mismo que ya se le envió por correo/WhatsApp.
+    if (usuario.requiere_cambio_password) {
+      try {
+        const credResponse = await api.get("/credenciales/mias", {
+          params: { id_usuario: usuario.id_usuario },
+        });
+        setCredencialesInfo(credResponse.data.data.mensaje);
+        setRedirectPath(destino);
+        setIsLoading(false);
+        return;
+      } catch {
+        // Si no se pudo recuperar el mensaje, no bloqueamos el login normal.
+      }
+    }
+
+    navigate(destino);
+
   } catch (err) {
-    const mensaje = err.response?.data?.error || 
-                   err.response?.data?.message || 
+    const mensaje = err.response?.data?.error ||
+                   err.response?.data?.message ||
                    "No se pudo iniciar sesión. Verifica tus credenciales.";
     setError(mensaje);
     setIsLoading(false);
   }
+}
+
+function cerrarCredenciales() {
+  setCredencialesInfo(null);
+  navigate(redirectPath || "/");
 }
 
   return (
@@ -157,17 +180,12 @@ async function handleSubmit(e) {
               </>
             )}
           </button>
-
-          <div className="auth-divider">
-            <span>o</span>
-          </div>
-
-          <p className="auth-footer-text">
-            ¿No tienes cuenta? <Link to="/register">Regístrate aquí</Link>
-            <FaArrowRight className="footer-arrow" />
-          </p>
         </form>
       </div>
+
+      {credencialesInfo && (
+        <CredencialesModal mensaje={credencialesInfo} onCerrar={cerrarCredenciales} />
+      )}
     </section>
   );
 }

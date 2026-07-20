@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useRegistroColegiado } from "../hooks/useRegistroColegiado";
+import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../services/api";
 import {
   FaSearch,
@@ -15,7 +17,8 @@ import {
   FaSpinner,
   FaFileUpload,
   FaFilePdf,
-  FaImage
+  FaImage,
+  FaTrashAlt,
 } from "react-icons/fa";
 import { MdEngineering } from "react-icons/md";
 import "../styles/Dashboard.css";
@@ -24,40 +27,47 @@ import { validarArchivo, obtenerDimensionesImagen, validarProporcionCarnet } fro
 import { subirFotoCarnet, subirTitulo } from "../services/uploadService";
 import { useNavigate } from "react-router-dom";
 
-
-const initialForm = {
-  dni: "",
-  apellido_paterno: "",
-  apellido_materno: "",
-  nombre_completo: "",
-  id_especialidad: "",
-  telefono: "",
-  correo: "",
-  id_sede: "",
-};
-
 function DashboardCajero() {
   const { session } = useAuth();
-  const [form, setForm] = useState(initialForm);
+  const {
+    form,
+    setForm,
+    fotoFile,
+    setFotoFile,
+    tituloFile,
+    setTituloFile,
+    datosAutocompletados,
+    setDatosAutocompletados,
+    dniConsultado,
+    setDniConsultado,
+    camposBloqueados,
+    setCamposBloqueados,
+    resetFormulario,
+  } = useRegistroColegiado();
   const [sedes, setSedes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [consultandoDni, setConsultandoDni] = useState(false);
-  const [datosAutocompletados, setDatosAutocompletados] = useState(false);
   const [feedback, setFeedback] = useState(null);
-  const [camposBloqueados, setCamposBloqueados] = useState({
-    apellido_paterno: false,
-    apellido_materno: false,
-    nombre_completo: false,
-  });
-  const [dniConsultado, setDniConsultado] = useState(false);
   const [especialidades, setEspecialidades] = useState([]);
-  const [fotoFile, setFotoFile] = useState(null);
-  const [tituloFile, setTituloFile] = useState(null);
   const [fotoError, setFotoError] = useState(null);
   const [tituloError, setTituloError] = useState(null);
   const [subiendoArchivos, setSubiendoArchivos] = useState(false);
+  const [mostrarConfirmBorrar, setMostrarConfirmBorrar] = useState(false);
   const navigate = useNavigate();
   const sedeDelCajero = sedes.find((s) => s.id_sede === session?.id_sede);
+
+  const hayDatosIngresados =
+    Object.entries(form).some(([campo, valor]) => campo !== "id_sede" && String(valor).trim() !== "") ||
+    !!fotoFile ||
+    !!tituloFile;
+
+  function confirmarBorrarTodo() {
+    resetFormulario();
+    setFotoError(null);
+    setTituloError(null);
+    setFeedback(null);
+    setMostrarConfirmBorrar(false);
+  }
 
   useEffect(() => {
     async function cargarCatalogos() {
@@ -79,7 +89,7 @@ function DashboardCajero() {
     if (session?.id_sede) {
       setForm((prev) => ({ ...prev, id_sede: session.id_sede }));
     }
-  }, [session]);
+  }, [session, setForm]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -209,12 +219,7 @@ function DashboardCajero() {
       });
 
       setFeedback({ type: "success", message: "Solicitud registrada correctamente. Queda pendiente de aprobación." });
-      setForm(initialForm);
-      setDatosAutocompletados(false);
-      setDniConsultado(false);
-      setFotoFile(null);
-      setTituloFile(null);
-      setCamposBloqueados({ apellido_paterno: false, apellido_materno: false, nombre_completo: false });
+      resetFormulario();
     } catch (err) {
       const mensaje = err.response?.data?.error || "No se pudo registrar la solicitud.";
       setFeedback({ type: "error", message: mensaje });
@@ -279,6 +284,25 @@ function DashboardCajero() {
           <h1>Registrar nuevo colegiado</h1>
           <p>Completa los datos del ingeniero para generar su solicitud de colegiatura.</p>
         </div>
+
+        {hayDatosIngresados && (
+          <div className="borrar-todo-row">
+            <button type="button" className="borrar-todo-btn" onClick={() => setMostrarConfirmBorrar(true)}>
+              <FaTrashAlt /> Borrar todos los datos
+            </button>
+          </div>
+        )}
+
+        {mostrarConfirmBorrar && (
+          <ConfirmDialog
+            titulo="¿Borrar todos los datos?"
+            mensaje="Se perderá todo lo que ingresaste en este formulario, incluyendo la foto y el título adjuntados. Esta acción no se puede deshacer."
+            textoConfirmar="Sí, borrar todo"
+            textoCancelar="Cancelar"
+            onConfirmar={confirmarBorrarTodo}
+            onCancelar={() => setMostrarConfirmBorrar(false)}
+          />
+        )}
 
         <form className="registro-form" onSubmit={handleSubmit}>
           {/* Campo DNI con botón de consulta */}
