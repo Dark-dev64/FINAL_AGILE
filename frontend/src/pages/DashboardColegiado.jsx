@@ -8,7 +8,7 @@ import "../styles/Dashboard.css";
 const ESTADOS = {
   habilitado: { label: "Habilitado", color: "green" },
   inhabilitado: { label: "Inhabilitado", color: "red" },
-  con_deuda: { label: "Con deuda", color: "yellow" },
+  con_deuda: { label: "Inhabilitado", color: "red" },
 };
 
 function DashboardColegiado() {

@@ -19,8 +19,7 @@ import CambiarPassword from "./pages/CambiarPassword";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
 import PagoColegiadoRemoto from "./pages/PagoColegiadoRemoto";
 import MisPagosColegiado from "./pages/MisPagosColegiado";
-import PagarMensualidad from "./pages/PagarMensualidad";
-import PagarDeudas from "./pages/PagarDeudas";
+import PagarColegiado from "./pages/PagarColegiado";
 
 function App() {
   return (
@@ -46,8 +45,7 @@ function App() {
               <Route path="/dashboard-colegiado" element={<DashboardColegiado />} />
               <Route path="/dashboard-cajero" element={<DashboardCajero />} />
               <Route path="/dashboard-cajero/pago" element={<PagoMatricula />} />
-              <Route path="/dashboard-cajero/pagar-mensualidad" element={<PagarMensualidad />} />
-              <Route path="/dashboard-cajero/pagar-deudas" element={<PagarDeudas />} />
+              <Route path="/dashboard-cajero/pagar-colegiado" element={<PagarColegiado />} />
               <Route path="/cambiar-password" element={<CambiarPassword />} />
               <Route path="/dashboard-colegiado/pagos" element={<MisPagosColegiado />} />
             </Route>
