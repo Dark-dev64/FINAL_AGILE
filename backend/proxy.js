@@ -6,7 +6,7 @@ const ALLOWED_ORIGINS = [
   "https://finalcip.netlify.app",
 ];
 
-export function middleware(request) {
+export function proxy(request) {
   const origin = request.headers.get("origin");
 
   const corsHeaders = {
