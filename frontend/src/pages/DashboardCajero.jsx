@@ -57,6 +57,7 @@ function DashboardCajero() {
   const [tituloError, setTituloError] = useState(null);
   const [subiendoArchivos, setSubiendoArchivos] = useState(false);
   const navigate = useNavigate();
+  const sedeDelCajero = sedes.find((s) => s.id_sede === session?.id_sede);
 
   useEffect(() => {
     async function cargarCatalogos() {
@@ -73,6 +74,12 @@ function DashboardCajero() {
     }
     cargarCatalogos();
   }, []);
+
+  useEffect(() => {
+    if (session?.id_sede) {
+      setForm((prev) => ({ ...prev, id_sede: session.id_sede }));
+    }
+  }, [session]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -445,22 +452,24 @@ function DashboardCajero() {
             <label htmlFor="id_sede">
               <FaMapMarkerAlt className="input-icon" />
               Sede
+              <FaLock className="lock-icon" />
             </label>
-            <select
-              id="id_sede"
-              name="id_sede"
-              value={form.id_sede}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            >
-              <option value="" disabled>Selecciona una sede</option>
-              {sedes.map((sede) => (
-                <option key={sede.id_sede} value={sede.id_sede}>
-                  {sede.nombre} — {sede.ciudad}
-                </option>
-              ))}
-            </select>
+            <div className="input-wrapper">
+              <input
+                id="id_sede"
+                type="text"
+                value={sedeDelCajero ? `${sedeDelCajero.nombre} — ${sedeDelCajero.ciudad}` : "Cargando..."}
+                readOnly
+                disabled
+                className="locked-field"
+              />
+              <div className="field-lock-icon">
+                <FaLock />
+              </div>
+            </div>
+            <span className="registro-hint">
+              Esta sede corresponde a tu cuenta y no puede modificarse.
+            </span>
           </div>
 
           {/* Teléfono y Correo */}
@@ -497,12 +506,20 @@ function DashboardCajero() {
                 disabled={loading}
               />
             </div>
+          </div>
 
+          <div className="registro-hint">
+            <FaExclamationCircle className="hint-icon" />
+            <span>Debes completar al menos uno de los dos: teléfono o correo.</span>
+          </div>
+
+          {/* Foto y Título */}
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="foto_carnet">
                 <FaImage className="input-icon" />
                 Foto tipo carnet
-                <span className="label-hint">(JPG/PNG, máx. 2 MB, vertical)</span>
+                <span className="label-hint">(JPG/PNG, máx. 2 MB)</span>
               </label>
               <input
                 id="foto_carnet"
@@ -551,11 +568,6 @@ function DashboardCajero() {
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="registro-hint">
-            <FaExclamationCircle className="hint-icon" />
-            <span>Debes completar al menos uno de los dos: teléfono o correo.</span>
           </div>
 
           {feedback && (

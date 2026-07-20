@@ -1,0 +1,146 @@
+.remoto-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f0eb 0%, #e8e1d9 100%);
+  padding: 1rem;
+}
+
+.remoto-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  border-top: 4px solid var(--color-gold, #c9a84c);
+}
+
+.remoto-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.remoto-logo {
+  font-size: 2.2rem;
+  color: var(--color-red, #b22234);
+}
+
+.remoto-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--color-charcoal, #2c2c2c);
+}
+
+.remoto-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.remoto-loading svg {
+  font-size: 2rem;
+}
+
+.remoto-info {
+  background: #f9f7f4;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.remoto-monto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.remoto-monto svg {
+  font-size: 1.4rem;
+  color: var(--color-red);
+  margin-bottom: 0.25rem;
+}
+
+.remoto-monto span {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.remoto-monto strong {
+  font-size: 2rem;
+  color: var(--color-red);
+  font-family: var(--font-display);
+}
+
+.remoto-orden {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid #ddd9d4;
+  padding-top: 0.75rem;
+}
+
+.remoto-instruccion {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-red);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.remoto-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.remoto-feedback.success {
+  background-color: #e6f4ea;
+  color: #1e7e34;
+}
+
+.remoto-feedback.error {
+  background-color: #fdecea;
+  color: #b22234;
+}
+
+.remoto-feedback svg {
+  font-size: 2rem;
+}
+
+.remoto-retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--color-red);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.remoto-retry-btn:hover {
+  background: #8b1a1a;
+}

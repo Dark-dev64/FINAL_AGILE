@@ -456,3 +456,23 @@
   font-size: 0.85rem;
   color: #4a7a4d;
 }
+
+.btn-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-white);
+  border: 1px solid #DDD9D4;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  margin-bottom: 1rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-volver:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}

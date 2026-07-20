@@ -3,10 +3,19 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
 import { subirFotoCarnet, subirTitulo } from "../services/uploadService";
-import { FaMoneyBillWave, FaQrcode, FaCheckCircle, FaExclamationCircle, FaSpinner } from "react-icons/fa";
+import {
+  FaMoneyBillWave,
+  FaQrcode,
+  FaCheckCircle,
+  FaExclamationCircle,
+  FaSpinner,
+  FaArrowLeft,
+  FaPaperPlane,
+  FaDesktop,
+} from "react-icons/fa";
 import "../styles/PagoMatricula.css";
 
-const MONTO_MATRICULA = 6.00;
+const MONTO_MATRICULA = 6.0;
 
 const METODOS = [
   { valor: "efectivo", label: "Efectivo", icono: FaMoneyBillWave },
@@ -25,41 +34,52 @@ function PagoMatricula() {
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
   const [procesando, setProcesando] = useState(false);
   const [feedback, setFeedback] = useState(null);
-
   const [ordenCulqi, setOrdenCulqi] = useState(null);
-  const [idSolicitudCreada, setIdSolicitudCreada] = useState(null);
   const intervaloRef = useRef(null);
 
+  // Mostrar fecha solo si el usuario tiene rol administrador (ajusta según tu lógica)
+  const esAdmin = session?.rol === "admin";
+
+  // Limpiar intervalo al desmontar
   useEffect(() => {
-    return () => clearInterval(intervaloRef.current); // limpieza al salir de la pantalla
+    return () => {
+      if (intervaloRef.current) clearInterval(intervaloRef.current);
+    };
   }, []);
 
-  // Si alguien llega directo a esta URL sin pasar por el formulario, lo regresamos
+  // Protección de ruta
   if (!form) {
     navigate("/dashboard-cajero");
     return null;
   }
 
-  function iniciarPolling(culqiOrderId) {
+  const iniciarPolling = (culqiOrderId) => {
     intervaloRef.current = setInterval(async () => {
       try {
         const res = await api.get(`/pagos/estado/${culqiOrderId}`);
         if (res.data.data.estado_pago === "pagado") {
           clearInterval(intervaloRef.current);
-          setFeedback({ type: "success", message: "¡Pago confirmado! Solicitud enviada al administrador." });
+          setFeedback({
+            type: "success",
+            message: "¡Pago confirmado! Solicitud enviada al administrador.",
+          });
           setTimeout(() => navigate("/dashboard-cajero"), 2500);
         }
       } catch (err) {
-        // silenciosamente reintenta en el siguiente ciclo
+        // reintento silencioso
       }
     }, 3000);
-  }
+  };
 
-  async function handleGenerarQR() {
+  const handleGenerarQR = async () => {
     setFeedback(null);
     setProcesando(true);
-
     try {
+      // Verificar Culqi
+      if (!window.Culqi) {
+        throw new Error("El servicio de pago no está disponible.");
+      }
+
       const [datosFoto, datosTitulo] = await Promise.all([
         subirFotoCarnet(fotoFile.file, form.dni),
         subirTitulo(tituloFile, form.dni),
@@ -81,7 +101,6 @@ function PagoMatricula() {
       const orden = responseOrden.data.data.orden;
       setOrdenCulqi(orden);
 
-      // Configura y abre el Checkout de Culqi para esta orden específica
       window.Culqi.publicKey = import.meta.env.VITE_CULQI_PUBLIC_KEY;
       window.Culqi.settings({
         currency: "PEN",
@@ -94,7 +113,7 @@ function PagoMatricula() {
         paymentMethods: {
           tarjeta: false,
           yape: false,
-          billetera: true,    // ← este es el que genera el QR real
+          billetera: true,
           bancaMovil: false,
           agente: false,
           cuotealo: false,
@@ -102,53 +121,61 @@ function PagoMatricula() {
       });
 
       window.Culqi.open();
-
       iniciarPolling(orden.id);
     } catch (err) {
-      setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo generar el QR." });
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.error || err.message || "No se pudo generar el QR.",
+      });
     } finally {
       setProcesando(false);
     }
-  }
+  };
 
-async function handleEnviarLink() {
-  setFeedback(null);
-  setProcesando(true);
-
-  try {
-    const [datosFoto, datosTitulo] = await Promise.all([
-      subirFotoCarnet(fotoFile.file, form.dni),
-      subirTitulo(tituloFile, form.dni),
-    ]);
-
-    // Reutilizamos el mismo endpoint de crear-orden, no el de Links
-    const responseOrden = await api.post("/pagos/culqi/crear-orden", {
-      ...form,
-      id_usuario_cajero: session.id_usuario,
-      foto_key: datosFoto.foto_key,
-      foto_content_type: datosFoto.foto_content_type,
-      foto_size_bytes: datosFoto.foto_size_bytes,
-      foto_ancho_px: fotoFile.ancho,
-      foto_alto_px: fotoFile.alto,
-      titulo_key: datosTitulo.titulo_key,
-      titulo_content_type: datosTitulo.titulo_content_type,
-      titulo_size_bytes: datosTitulo.titulo_size_bytes,
-      enviar_link: true, // le decimos al backend que además del QR local, mande el link
-    });
-
-    setFeedback({ type: "success", message: `Link enviado a ${form.correo || form.telefono}. Esperando su pago...` });
-    iniciarPolling(responseOrden.data.data.orden.id);
-  } catch (err) {
-    setFeedback({ type: "error", message: err.response?.data?.error || "No se pudo enviar el link." });
-  } finally {
-    setProcesando(false);
-  }
-}
-
-  async function handleConfirmarEfectivo() {
+  const handleEnviarLink = async () => {
     setFeedback(null);
     setProcesando(true);
+    try {
+      const [datosFoto, datosTitulo] = await Promise.all([
+        subirFotoCarnet(fotoFile.file, form.dni),
+        subirTitulo(tituloFile, form.dni),
+      ]);
 
+      const responseOrden = await api.post("/pagos/culqi/crear-orden", {
+        ...form,
+        id_usuario_cajero: session.id_usuario,
+        foto_key: datosFoto.foto_key,
+        foto_content_type: datosFoto.foto_content_type,
+        foto_size_bytes: datosFoto.foto_size_bytes,
+        foto_ancho_px: fotoFile.ancho,
+        foto_alto_px: fotoFile.alto,
+        titulo_key: datosTitulo.titulo_key,
+        titulo_content_type: datosTitulo.titulo_content_type,
+        titulo_size_bytes: datosTitulo.titulo_size_bytes,
+        enviar_link: true,
+      });
+
+      const orden = responseOrden.data.data.orden;
+      setOrdenCulqi(orden);
+      const destino = form.correo ? "correo" : "WhatsApp";
+      setFeedback({
+        type: "success",
+        message: `Link de pago enviado a su ${destino}. Esperando confirmación...`,
+      });
+      iniciarPolling(orden.id);
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.error || "No se pudo enviar el link.",
+      });
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const handleConfirmarEfectivo = async () => {
+    setFeedback(null);
+    setProcesando(true);
     try {
       const [datosFoto, datosTitulo] = await Promise.all([
         subirFotoCarnet(fotoFile.file, form.dni),
@@ -175,19 +202,24 @@ async function handleEnviarLink() {
         type: "success",
         message: `Pago registrado y solicitud enviada al administrador (N° ${response.data.data.id_solicitud}).`,
       });
-
       setTimeout(() => navigate("/dashboard-cajero"), 2500);
     } catch (err) {
-      const mensaje = err.response?.data?.error || "No se pudo procesar el pago.";
-      setFeedback({ type: "error", message: mensaje });
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.error || "No se pudo procesar el pago.",
+      });
     } finally {
       setProcesando(false);
     }
-  }
+  };
 
   return (
     <section className="dashboard form-layout">
       <div className="pago-matricula">
+        <button className="back-button" onClick={() => navigate("/dashboard-cajero")}>
+          <FaArrowLeft /> Volver
+        </button>
+
         <div className="registro-header">
           <span className="dashboard-role">Pago de matrícula</span>
           <h1>{form.nombre_completo}</h1>
@@ -207,6 +239,7 @@ async function handleEnviarLink() {
               className={`metodo-card ${metodoPago === valor ? "activo" : ""}`}
               onClick={() => setMetodoPago(valor)}
               disabled={procesando || !!ordenCulqi}
+              aria-pressed={metodoPago === valor}
             >
               <Icono />
               <span>{label}</span>
@@ -214,22 +247,25 @@ async function handleEnviarLink() {
           ))}
         </div>
 
-        {ordenCulqi && (
-          <div className="qr-placeholder">
-            <p>Completa el pago en la ventana de Culqi que se abrió. Esperando confirmación...</p>
-          </div>
+        {/* Solo visible para administradores */}
+        {esAdmin && (
+          <label className="fecha-pago-label">
+            Fecha de pago (prueba de sistema de deuda)
+            <input
+              type="date"
+              value={fechaPago}
+              onChange={(e) => setFechaPago(e.target.value)}
+              disabled={procesando || !!ordenCulqi}
+            />
+          </label>
         )}
 
-        <label className="fecha-pago-label">
-          Fecha de pago
-          <span className="label-hint">(editable, solo para pruebas del sistema de deuda)</span>
-          <input
-            type="date"
-            value={fechaPago}
-            onChange={(e) => setFechaPago(e.target.value)}
-            disabled={procesando || !!ordenCulqi}
-          />
-        </label>
+        {ordenCulqi && (
+          <div className="qr-placeholder">
+            <FaQrcode className="qr-icon pulse" />
+            <p>Completa el pago en la ventana de Culqi. Esperando confirmación...</p>
+          </div>
+        )}
 
         {feedback && (
           <div className={`registro-feedback ${feedback.type}`}>
@@ -246,8 +282,7 @@ async function handleEnviarLink() {
           >
             {procesando ? (
               <>
-                <FaSpinner className="spinning" />
-                Procesando pago...
+                <FaSpinner className="spinning" /> Procesando...
               </>
             ) : (
               "Confirmar pago en efectivo"
@@ -257,10 +292,10 @@ async function handleEnviarLink() {
           !ordenCulqi && (
             <div className="pago-opciones">
               <button className="submit-button" onClick={handleGenerarQR} disabled={procesando}>
-                {procesando ? "Generando..." : "Mostrar QR en pantalla"}
+                <FaDesktop /> Mostrar QR en pantalla
               </button>
               <button className="submit-button secundario" onClick={handleEnviarLink} disabled={procesando}>
-                {procesando ? "Enviando..." : `Enviar link a su ${form.correo ? "correo" : "WhatsApp"}`}
+                <FaPaperPlane /> Enviar link {form.correo ? "al correo" : "por WhatsApp"}
               </button>
             </div>
           )

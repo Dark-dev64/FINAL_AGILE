@@ -433,3 +433,44 @@
 .required-hint svg {
   color: var(--color-gold);
 }
+
+/* Personalización del input de archivo (foto carnet y título) */
+.registro-form input[type="file"] {
+  border: 1px dashed #DDD9D4;
+  background-color: var(--color-bg);
+  padding: 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.registro-form input[type="file"]:hover {
+  border-color: var(--color-gold);
+  background-color: #FDF6EC;
+}
+
+.registro-form input[type="file"]::file-selector-button {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-right: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.registro-form input[type="file"]::file-selector-button:hover {
+  background-color: var(--color-red);
+}
+
+.registro-form input[type="file"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.registro-form input[type="file"]:disabled::file-selector-button {
+  cursor: not-allowed;
+}

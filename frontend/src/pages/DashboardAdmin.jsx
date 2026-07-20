@@ -11,6 +11,8 @@ import {
   FaClock,
   FaCheckCircle,
   FaTimesCircle,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import "../styles/Dashboard.css";
 import "../styles/ListaSolicitudes.css";
@@ -34,7 +36,9 @@ function DashboardAdmin() {
   const [error, setError] = useState(null);
   const [idSeleccionado, setIdSeleccionado] = useState(null);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todas");
+  const [filtroEstado, setFiltroEstado] = useState("pendiente");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
 
   const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
@@ -52,6 +56,10 @@ function DashboardAdmin() {
   useEffect(() => {
     cargarSolicitudes();
   }, [cargarSolicitudes]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, filtroEstado, porPagina]);
 
   function cerrarDetalle(actualizar) {
     setIdSeleccionado(null);
@@ -79,6 +87,17 @@ function DashboardAdmin() {
       return s.dni.includes(term) || nombreCompleto.includes(term);
     });
   }, [solicitudes, filtroEstado, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(solicitudesFiltradas.length / porPagina));
+
+  const solicitudesPaginadas = useMemo(() => {
+    const inicio = (paginaActual - 1) * porPagina;
+    return solicitudesFiltradas.slice(inicio, inicio + porPagina);
+  }, [solicitudesFiltradas, paginaActual, porPagina]);
+
+  function irAPagina(pagina) {
+    setPaginaActual(Math.min(Math.max(1, pagina), totalPaginas));
+  }
 
   return (
     <section className="dashboard form-layout">
@@ -146,6 +165,20 @@ function DashboardAdmin() {
                 </button>
               ))}
             </div>
+
+            <div className="por-pagina-selector">
+              <label htmlFor="porPagina">Mostrar</label>
+              <select
+                id="porPagina"
+                value={porPagina}
+                onChange={(e) => setPorPagina(Number(e.target.value))}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
         )}
 
@@ -203,7 +236,7 @@ function DashboardAdmin() {
                 </tr>
               </thead>
               <tbody>
-                {solicitudesFiltradas.map((s) => {
+                {solicitudesPaginadas.map((s) => {
                   const estado = ESTADO_LABELS[s.estado_solicitud];
                   const pago = s.pagos?.[0];
                   return (
@@ -231,6 +264,30 @@ function DashboardAdmin() {
 
             {solicitudes.length > 0 && solicitudesFiltradas.length === 0 && (
               <p className="lista-estado">No se encontraron solicitudes con ese criterio.</p>
+            )}
+
+            {solicitudesFiltradas.length > porPagina && (
+              <div className="paginacion">
+                <button
+                  className="paginacion-btn"
+                  onClick={() => irAPagina(paginaActual - 1)}
+                  disabled={paginaActual === 1}
+                >
+                  <FaChevronLeft /> Anterior
+                </button>
+
+                <span className="paginacion-info">
+                  Página {paginaActual} de {totalPaginas} — {solicitudesFiltradas.length} resultados
+                </span>
+
+                <button
+                  className="paginacion-btn"
+                  onClick={() => irAPagina(paginaActual + 1)}
+                  disabled={paginaActual === totalPaginas}
+                >
+                  Siguiente <FaChevronRight />
+                </button>
+              </div>
             )}
           </div>
         )}

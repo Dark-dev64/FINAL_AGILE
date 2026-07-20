@@ -12,10 +12,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 import DashboardAdmin from "./pages/DashboardAdmin";
-import SolicitudesAdmin from "./pages/SolicitudesAdmin";
 import DashboardColegiado from "./pages/DashboardColegiado";
 import DashboardCajero from "./pages/DashboardCajero";
-import PruebaCajero from "./pages/PruebaCajero";
 import PagoMatricula from "./pages/PagoMatricula";
 import CambiarPassword from "./pages/CambiarPassword";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
@@ -42,10 +40,8 @@ function App() {
 
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard-admin" element={<DashboardAdmin />} />
-            <Route path="/dashboard-admin/solicitudes" element={<SolicitudesAdmin />} />
             <Route path="/dashboard-colegiado" element={<DashboardColegiado />} />
             <Route path="/dashboard-cajero" element={<DashboardCajero />} />
-            <Route path="/dashboard-cajero/prueba" element={<PruebaCajero />} />
             <Route path="/dashboard-cajero/pago" element={<PagoMatricula />} />
             <Route path="/cambiar-password" element={<CambiarPassword />} />
           </Route>

@@ -4,8 +4,6 @@ import { FaKey } from "react-icons/fa";
 import "../styles/DashboardMenuBar.css";
 
 const MENU_ITEMS = {
-  admin: [{ label: "Ver solicitudes", to: "/dashboard-admin/solicitudes" }],
-  cajero: [{ label: "Prueba", to: "/dashboard-cajero/prueba" }],
   colegiado: [],
 };
 
