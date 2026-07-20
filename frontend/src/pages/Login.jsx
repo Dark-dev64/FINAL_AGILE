@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
@@ -20,6 +20,8 @@ const ROLES = {
   cajero: "/dashboard-cajero",
 };
 
+const STORAGE_KEY = "cip_remember_username";
+
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -32,54 +34,68 @@ function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-async function handleSubmit(e) {
-  e.preventDefault();
-  setError("");
-  setIsLoading(true);
-
-  try {
-    const response = await api.post("/auth/login", {
-      username: username.trim(),
-      password: password.trim()
-    });
-
-    const usuario = response.data.data;
-
-    login(usuario);
-
-    const destino = ROLES[usuario.rol] || "/";
-
-    // Primer(os) login(s) con la contraseña temporal autogenerada: se le
-    // muestra en la propia web lo mismo que ya se le envió por correo/WhatsApp.
-    if (usuario.requiere_cambio_password) {
-      try {
-        const credResponse = await api.get("/credenciales/mias", {
-          params: { id_usuario: usuario.id_usuario },
-        });
-        setCredencialesInfo(credResponse.data.data.mensaje);
-        setRedirectPath(destino);
-        setIsLoading(false);
-        return;
-      } catch {
-        // Si no se pudo recuperar el mensaje, no bloqueamos el login normal.
-      }
+  // Al montar, si hay un username guardado, lo precargamos y marcamos el checkbox
+  useEffect(() => {
+    const guardado = localStorage.getItem(STORAGE_KEY);
+    if (guardado) {
+      setUsername(guardado);
+      setRememberMe(true);
     }
+  }, []);
 
-    navigate(destino);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-  } catch (err) {
-    const mensaje = err.response?.data?.error ||
-                   err.response?.data?.message ||
-                   "No se pudo iniciar sesión. Verifica tus credenciales.";
-    setError(mensaje);
-    setIsLoading(false);
+    try {
+      const response = await api.post("/auth/login", {
+        username: username.trim(),
+        password: password.trim(),
+      });
+
+      const usuario = response.data.data;
+
+      // Guardar o limpiar el username recordado según el checkbox
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEY, username.trim());
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      login(usuario);
+
+      const destino = ROLES[usuario.rol] || "/";
+
+      if (usuario.requiere_cambio_password) {
+        try {
+          const credResponse = await api.get("/credenciales/mias", {
+            params: { id_usuario: usuario.id_usuario },
+          });
+          setCredencialesInfo(credResponse.data.data.mensaje);
+          setRedirectPath(destino);
+          setIsLoading(false);
+          return;
+        } catch {
+          // Si no se pudo recuperar el mensaje, no bloqueamos el login normal.
+        }
+      }
+
+      navigate(destino);
+    } catch (err) {
+      const mensaje =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "No se pudo iniciar sesión. Verifica tus credenciales.";
+      setError(mensaje);
+      setIsLoading(false);
+    }
   }
-}
 
-function cerrarCredenciales() {
-  setCredencialesInfo(null);
-  navigate(redirectPath || "/");
-}
+  function cerrarCredenciales() {
+    setCredencialesInfo(null);
+    navigate(redirectPath || "/");
+  }
 
   return (
     <section className="auth-page">
@@ -107,7 +123,7 @@ function cerrarCredenciales() {
               <input
                 id="username"
                 type="text"
-                placeholder="Ingresa tu usuario"  
+                placeholder="Ingresa tu usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
