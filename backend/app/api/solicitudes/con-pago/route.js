@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
-import { ok, fail } from "../../../../utils/apiResponse";
+import { ok, fail, mensajeErrorDuplicado } from "../../../../utils/apiResponse";
 import { crearNotificacionParaRol } from "../../../../lib/notificacionesWeb";
 
 // Hardcodeado en el backend, no confiamos en el monto del cliente.
@@ -52,7 +52,7 @@ export async function POST(request) {
     p_fecha_vencimiento: body.fecha_vencimiento,
   });
 
-  if (error) return fail(error.message, 500);
+  if (error) return fail(mensajeErrorDuplicado(error) || error.message, 500);
 
   crearNotificacionParaRol({
     rol: "admin",

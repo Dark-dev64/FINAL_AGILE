@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
-import { ok, fail } from "../../../../utils/apiResponse";
+import { ok, fail, mensajeErrorDuplicado } from "../../../../utils/apiResponse";
 import { paymentClient } from "../../../../lib/mercadopagoClient";
 import { enviarComprobantePago } from "../../../../utils/comprobantePago";
 import { crearNotificacionWeb, crearNotificacionParaRol } from "../../../../lib/notificacionesWeb";
@@ -177,7 +177,7 @@ async function manejarWebhook(request) {
 
   if (error) {
     console.error("❌ Error en RPC fn_registrar_solicitud_con_pago:", error.message);
-    return fail(error.message, 500);
+    return fail(mensajeErrorDuplicado(error) || error.message, 500);
   }
 
   await supabaseAdmin.from("ordenes_pago_pendientes").delete().eq("id_orden_temp", ordenTemp.id_orden_temp);

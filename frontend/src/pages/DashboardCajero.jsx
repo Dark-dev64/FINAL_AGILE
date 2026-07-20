@@ -53,6 +53,7 @@ function DashboardCajero() {
   const [tituloError, setTituloError] = useState(null);
   const [subiendoArchivos, setSubiendoArchivos] = useState(false);
   const [mostrarConfirmBorrar, setMostrarConfirmBorrar] = useState(false);
+  const [verificandoDuplicados, setVerificandoDuplicados] = useState(false);
   const navigate = useNavigate();
   const sedeDelCajero = sedes.find((s) => s.id_sede === session?.id_sede);
 
@@ -128,6 +129,12 @@ function DashboardCajero() {
     }
   }
 
+  const MENSAJES_DNI_DUPLICADO = {
+    aprobada: "Este DNI ya está registrado como colegiado. No se puede volver a registrar.",
+    pendiente: "Este DNI ya tiene una solicitud pendiente de revisión.",
+    rechazada: "Este DNI ya tiene una solicitud registrada anteriormente (fue rechazada) y no puede volver a usarse.",
+  };
+
   async function handleConsultarDni() {
     if (!/^\d{8}$/.test(form.dni)) {
       setFeedback({ type: "error", message: "Ingresa un DNI válido de 8 dígitos antes de consultar." });
@@ -138,6 +145,16 @@ function DashboardCajero() {
     setConsultandoDni(true);
 
     try {
+      const verificacion = await api.get("/solicitudes/verificar", { params: { dni: form.dni } });
+      if (verificacion.data.data.dni?.existe) {
+        const estado = verificacion.data.data.dni.estado;
+        setFeedback({
+          type: "error",
+          message: MENSAJES_DNI_DUPLICADO[estado] || "Este DNI ya está registrado en el sistema.",
+        });
+        return;
+      }
+
       const response = await api.get(`/reniec/${form.dni}`);
       const datos = response.data.data;
 
@@ -163,7 +180,7 @@ function DashboardCajero() {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setFeedback(null);
 
@@ -185,6 +202,39 @@ function DashboardCajero() {
     if (!tituloFile) {
       setFeedback({ type: "error", message: "Debes adjuntar el título profesional." });
       return;
+    }
+
+    setVerificandoDuplicados(true);
+    try {
+      const verificacion = await api.get("/solicitudes/verificar", {
+        params: {
+          dni: form.dni,
+          correo: form.correo.trim(),
+          ...(form.telefono.trim() ? { telefono: form.telefono.trim() } : {}),
+        },
+      });
+      const { dni, correo, telefono } = verificacion.data.data;
+
+      if (dni?.existe) {
+        setFeedback({
+          type: "error",
+          message: MENSAJES_DNI_DUPLICADO[dni.estado] || "Este DNI ya está registrado en el sistema.",
+        });
+        return;
+      }
+      if (correo?.existe) {
+        setFeedback({ type: "error", message: "Ese correo ya está registrado con otra solicitud." });
+        return;
+      }
+      if (telefono?.existe) {
+        setFeedback({ type: "error", message: "Ese teléfono ya está registrado con otra solicitud." });
+        return;
+      }
+    } catch {
+      setFeedback({ type: "error", message: "No se pudo verificar los datos. Intenta de nuevo." });
+      return;
+    } finally {
+      setVerificandoDuplicados(false);
     }
 
     // Nada se envía todavía. Solo pasamos los datos a la pantalla de pago.
@@ -604,12 +654,16 @@ function DashboardCajero() {
             </div>
           )}
 
-          <button type="submit" className="submit-button" disabled={!dniConsultado}
-          >
+          <button type="submit" className="submit-button" disabled={!dniConsultado || verificandoDuplicados}>
             {subiendoArchivos ? (
               <>
                 <FaSpinner className="spinning" />
                 Subiendo archivos...
+              </>
+            ) : verificandoDuplicados ? (
+              <>
+                <FaSpinner className="spinning" />
+                Verificando datos...
               </>
             ) : loading ? (
               <>

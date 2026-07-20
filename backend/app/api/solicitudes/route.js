@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../../lib/supabaseClient";
-import { ok, fail } from "../../../utils/apiResponse";
+import { ok, fail, mensajeErrorDuplicado } from "../../../utils/apiResponse";
 import { isNotEmpty, isValidDNI } from "../../../utils/validators";
 import { crearNotificacionParaRol } from "../../../lib/notificacionesWeb";
 
@@ -83,7 +83,7 @@ export async function POST(request) {
     .select()
     .single();
 
-  if (error) return fail(error.message, 500);
+  if (error) return fail(mensajeErrorDuplicado(error) || error.message, 500);
 
   crearNotificacionParaRol({
     rol: "admin",

@@ -1197,3 +1197,28 @@ CREATE INDEX idx_notificaciones_web_leida ON notificaciones_web(leida);
 ALTER TABLE ordenes_pago_pendientes
     ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'rechazado')),
     ADD COLUMN motivo_rechazo VARCHAR(60);
+
+-- ==========================================================
+-- DNI, correo y teléfono deben ser únicos entre solicitudes (evita que
+-- un mismo colegiado quede registrado dos veces con distintos datos).
+-- dni ya era UNIQUE desde el inicio del esquema; agregamos correo y
+-- teléfono. NULL no choca contra NULL (varias filas sin teléfono son
+-- válidas), pero SÍ falla si ya existen correos o teléfonos duplicados
+-- cargados previamente.
+--
+-- ANTES DE CORRER ESTO EN PRODUCCIÓN: verifica que no haya duplicados
+-- ya cargados, o el ALTER TABLE va a fallar. Puedes chequearlo con:
+--
+--   SELECT correo, COUNT(*) FROM solicitudes WHERE correo IS NOT NULL
+--   GROUP BY correo HAVING COUNT(*) > 1;
+--
+--   SELECT telefono, COUNT(*) FROM solicitudes WHERE telefono IS NOT NULL
+--   GROUP BY telefono HAVING COUNT(*) > 1;
+--
+-- Si aparece algo, hay que resolver esos duplicados a mano primero.
+-- ==========================================================
+ALTER TABLE solicitudes
+    ADD CONSTRAINT uq_solicitudes_correo UNIQUE (correo);
+
+ALTER TABLE solicitudes
+    ADD CONSTRAINT uq_solicitudes_telefono UNIQUE (telefono);
