@@ -98,7 +98,7 @@
   align-items: flex-start;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.85rem;
 }
 
 .estado-indicador {
@@ -153,7 +153,7 @@
 /* ===== COLEGIADO PAGE LAYOUT ===== */
 .dashboard-colegiado-page {
   align-items: flex-start;
-  padding-top: 3rem;
+  padding-top: 2rem;
 }
 
 .dashboard-column-wide {
@@ -166,18 +166,63 @@
   align-self: flex-start;
 }
 
-.dashboard-subtitle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
+.dashboard-welcome h1 {
+  margin: 0;
+  color: var(--color-charcoal);
+  letter-spacing: -0.02em;
 }
 
-.subtitle-icon {
-  color: var(--color-gold);
-  font-size: 0.85rem;
+.dashboard-member-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  width: 100%;
+  margin-top: 0.55rem;
+}
+
+.dashboard-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F4 100%);
+  border: 1px solid #E7E0D7;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(48, 43, 38, 0.05);
+}
+
+.dashboard-summary-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border-radius: 8px;
+  background-color: #F4E9D2;
+  color: #9A6D1D;
+  font-size: 0.9rem;
+}
+
+.dashboard-summary-item > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.dashboard-summary-label {
+  color: var(--color-text-muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.dashboard-summary-value {
+  color: var(--color-charcoal);
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 /* ===== SKELETON LOADING ===== */
@@ -264,4 +309,54 @@
 .dashboard-retry-btn:hover {
   background-color: #B0201F;
   color: var(--color-white);
+}
+
+.mis-datos-card {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.mis-datos-titulo {
+  font-size: 1rem;
+  color: var(--color-red);
+  margin-bottom: 1rem;
+}
+
+.mis-datos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mis-datos-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.mis-datos-icon {
+  font-size: 1.1rem;
+  color: var(--color-gold);
+  flex-shrink: 0;
+}
+
+.mis-datos-item div {
+  display: flex;
+  flex-direction: column;
+}
+
+.mis-datos-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.mis-datos-valor {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
 }

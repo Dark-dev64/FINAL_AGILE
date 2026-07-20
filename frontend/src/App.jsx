@@ -18,6 +18,7 @@ import PagoMatricula from "./pages/PagoMatricula";
 import CambiarPassword from "./pages/CambiarPassword";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
 import PagoColegiadoRemoto from "./pages/PagoColegiadoRemoto";
+import MisPagosColegiado from "./pages/MisPagosColegiado";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
             <Route path="/dashboard-cajero" element={<DashboardCajero />} />
             <Route path="/dashboard-cajero/pago" element={<PagoMatricula />} />
             <Route path="/cambiar-password" element={<CambiarPassword />} />
+            <Route path="/dashboard-colegiado/pagos" element={<MisPagosColegiado />} />
           </Route>
         </Routes>
       </BrowserRouter>

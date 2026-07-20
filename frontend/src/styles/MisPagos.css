@@ -1,0 +1,146 @@
+.mis-pagos {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.deuda-card {
+  background-color: #FDECEC;
+  border: 1px solid var(--color-red);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.deuda-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.deuda-icon {
+  color: var(--color-red);
+  font-size: 1.2rem;
+}
+
+.deuda-card-header h2 {
+  font-size: 1.05rem;
+  color: var(--color-red);
+}
+
+.deuda-monto {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-red);
+  font-family: var(--font-display);
+  margin-bottom: 0.35rem;
+}
+
+.deuda-detalle {
+  font-size: 0.85rem;
+  color: #8A2020;
+  margin-bottom: 0.85rem;
+}
+
+.deuda-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.deuda-lista li {
+  font-size: 0.85rem;
+  color: #8A2020;
+  padding: 0.4rem 0;
+  border-top: 1px dashed rgba(176, 32, 31, 0.3);
+}
+
+.mis-pagos-subtitulo {
+  font-size: 1rem;
+  color: var(--color-charcoal);
+  margin-bottom: 1rem;
+}
+
+.pagos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pago-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+}
+
+.pago-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gold);
+  flex-shrink: 0;
+}
+
+.pago-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pago-item-tipo {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-charcoal);
+}
+
+.pago-item-fecha {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.pago-item-monto {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-charcoal);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .pago-item {
+    flex-wrap: wrap;
+  }
+
+  .pago-item-monto {
+    order: 3;
+  }
+}
+
+.deuda-lista-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.deuda-recargo-nota {
+  display: block;
+  font-size: 0.75rem;
+  color: #B0201F;
+  opacity: 0.85;
+  margin-top: 0.2rem;
+  font-style: italic;
+}

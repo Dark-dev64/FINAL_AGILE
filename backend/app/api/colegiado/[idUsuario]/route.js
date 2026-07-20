@@ -27,15 +27,17 @@ export async function GET(request, { params }) {
   const { data: solicitud, error: errorSolicitud } = await supabaseAdmin
     .from("solicitudes")
     .select(`
-      apellido_paterno,
-      apellido_materno,
-      nombre_completo,
-      dni,
-      numero_registro,
-      foto_key,
-      especialidades ( nombre_especialidad ),
-      sedes ( nombre, ciudad )
-    `)
+    apellido_paterno,
+    apellido_materno,
+    nombre_completo,
+    dni,
+    numero_registro,
+    foto_key,
+    telefono,
+    correo,
+    especialidades ( nombre_especialidad ),
+    sedes ( nombre, ciudad )
+  `)
     .eq("id_usuario_colegiado", idUsuario)
     .eq("estado_solicitud", "aprobada")
     .single();
@@ -62,5 +64,7 @@ export async function GET(request, { params }) {
     fotoUrl,
     estado: usuario.estados?.nombre ?? "inhabilitado",
     sede: solicitud.sedes?.nombre ?? "—",
+    telefono: solicitud.telefono,
+    correo: solicitud.correo,
   });
 }

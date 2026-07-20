@@ -957,3 +957,90 @@ BEGIN
     END LOOP;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION fn_aprobar_solicitud()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_id_rol_colegiado INTEGER;
+    v_id_estado_habilitado INTEGER;
+    v_id_usuario_nuevo INTEGER;
+    v_correlativo INTEGER;
+    v_password_generada TEXT;
+    v_codigo_recuperacion TEXT;
+    v_canal VARCHAR(20);
+    v_destinatario VARCHAR(150);
+    v_mensaje TEXT;
+BEGIN
+    IF NEW.estado_solicitud = 'aprobada' AND OLD.estado_solicitud IS DISTINCT FROM 'aprobada' THEN
+
+        SELECT id_rol INTO v_id_rol_colegiado FROM roles WHERE nombre = 'colegiado';
+        SELECT id_estado INTO v_id_estado_habilitado FROM estados WHERE nombre = 'habilitado';
+
+        SELECT COALESCE(COUNT(*), 0) + 1 INTO v_correlativo
+        FROM solicitudes
+        WHERE id_sede = NEW.id_sede AND estado_solicitud = 'aprobada';
+
+        NEW.numero_registro := NEW.id_sede || '-' || LPAD(v_correlativo::TEXT, 5, '0');
+        NEW.fecha_aprobacion := now();
+
+        v_password_generada := substr(md5(random()::text), 1, 8);
+        v_codigo_recuperacion := lpad(floor(random() * 1000000)::text, 6, '0');
+
+        INSERT INTO usuarios (
+            username, password_hash, id_rol, id_sede, id_estado,
+            codigo_recuperacion, requiere_cambio_password
+        )
+        VALUES (
+            NEW.dni,
+            crypt(v_password_generada, gen_salt('bf')),
+            v_id_rol_colegiado,
+            NEW.id_sede,
+            v_id_estado_habilitado,
+            v_codigo_recuperacion,
+            true
+        )
+        RETURNING id_usuario INTO v_id_usuario_nuevo;
+
+        NEW.id_usuario_colegiado := v_id_usuario_nuevo;
+
+        UPDATE pagos
+        SET id_usuario_colegiado = v_id_usuario_nuevo
+        WHERE id_solicitud = NEW.id_solicitud;
+
+        -- Generar automáticamente la primera mensualidad, pendiente de pago
+        INSERT INTO pagos (
+            id_usuario_colegiado, id_usuario_cajero, tipo_pago, metodo_pago,
+            monto_base, porcentaje_recargo, fecha_vencimiento, estado_pago
+        ) VALUES (
+            v_id_usuario_nuevo,
+            NEW.id_usuario_cajero,
+            'mensualidad',
+            NULL,
+            10.00,
+            0,
+            (CURRENT_DATE + INTERVAL '1 month')::DATE,
+            'pendiente'
+        );
+
+        IF NEW.correo IS NOT NULL THEN
+            v_canal := 'correo';
+            v_destinatario := NEW.correo;
+        ELSE
+            v_canal := 'sms';
+            v_destinatario := NEW.telefono;
+        END IF;
+
+        v_mensaje := 'Bienvenido al CIP, ' || NEW.nombre_completo || '. ' ||
+                     'Tu usuario es tu DNI: ' || NEW.dni || '. ' ||
+                     'Tu contraseña temporal es: ' || v_password_generada || '. ' ||
+                     'Código de recuperación (guárdalo): ' || v_codigo_recuperacion || '. ' ||
+                     'Deberás cambiar tu contraseña al ingresar por primera vez.';
+
+        INSERT INTO credenciales_envio (id_usuario, id_solicitud, canal, destinatario, mensaje)
+        VALUES (v_id_usuario_nuevo, NEW.id_solicitud, v_canal, v_destinatario, v_mensaje);
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

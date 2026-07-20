@@ -1,10 +1,10 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { FaKey } from "react-icons/fa";
+import { FaHome, FaCreditCard, FaKey, FaSignOutAlt } from "react-icons/fa";
 import "../styles/DashboardMenuBar.css";
 
 const MENU_ITEMS = {
-  colegiado: [],
+  colegiado: [{ label: "Mis pagos", to: "/dashboard-colegiado/pagos", icon: FaCreditCard }],
 };
 
 const ROLE_LABELS = {
@@ -31,11 +31,16 @@ function DashboardMenuBar() {
         <span>Panel {ROLE_LABELS[role]}</span>
       </Link>
 
-      <nav className="menubar-links">
-        {items.map((item) => (
-          <Link key={item.to} to={item.to}>
-            {item.label}
-          </Link>
+      <nav className="menubar-links" aria-label="Navegación del panel">
+        <NavLink to={`/dashboard-${role}`} end className="menubar-link">
+          <FaHome aria-hidden="true" />
+          <span>Inicio</span>
+        </NavLink>
+        {items.map(({ label, to, icon: Icon }) => (
+          <NavLink key={to} to={to} className="menubar-link">
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
+          </NavLink>
         ))}
         <Link to="/cambiar-password" className="menubar-password-link">
           <FaKey /> Cambiar contraseña
@@ -43,6 +48,7 @@ function DashboardMenuBar() {
       </nav>
 
       <button className="menubar-logout" onClick={handleLogout}>
+        <FaSignOutAlt aria-hidden="true" />
         Cerrar sesión
       </button>
     </header>
