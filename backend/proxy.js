@@ -1,29 +1,36 @@
 import { NextResponse } from "next/server";
 
-// Lista de orígenes permitidos. Agrega aquí cualquier otro dominio
-// (por ejemplo un preview de Netlify) si lo necesitas más adelante.
+// Orígenes permitidos
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
-  "https://finalcip.netlify.app",
+  "https://cip-estudiantil.netlify.app",
 ];
 
-export function proxy(request) {
+export function middleware(request) {
   const origin = request.headers.get("origin");
-  const originPermitido = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
 
   const corsHeaders = {
-    "Access-Control-Allow-Origin": originPermitido,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Vary": "Origin", // importante: le dice a los caches que la respuesta varía según el origin
+    "Vary": "Origin",
   };
 
-  if (request.method === "OPTIONS") {
-    // Importante: debe llevar un cuerpo (aunque sea {}), un body null causa 400 en Next.js
-    return NextResponse.json({}, { headers: corsHeaders });
+  // Solo agrega Access-Control-Allow-Origin si el origen está permitido
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
   }
 
+  // Responder a la petición preflight (OPTIONS)
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
+  // Continuar con la petición normal
   const response = NextResponse.next();
+
   Object.entries(corsHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
