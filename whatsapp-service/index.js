@@ -16,13 +16,45 @@ const client = new Client({
   puppeteer: {
     headless: true,
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    defaultViewport: { width: 800, height: 600 }, // no necesitas nada más grande
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
-      "--single-process",
+      "--disable-software-rasterizer",
+      "--disable-accelerated-2d-canvas",
+      "--disable-extensions",
+      "--disable-component-extensions-with-background-pages",
+      "--disable-background-networking",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-breakpad",           // apaga el reporte de crashes de Chromium (no lo necesitas)
+      "--disable-sync",
+      "--disable-translate",
+      "--disable-speech-api",
+      "--disable-notifications",
+      "--disable-popup-blocking",
+      "--disable-print-preview",
+      "--disable-domain-reliability",
+      "--disable-client-side-phishing-detection",
+      "--disable-hang-monitor",
+      "--disable-ipc-flooding-protection",
+      "--disable-features=TranslateUI,MediaRouter,OptimizationHints",
+      "--mute-audio",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--hide-scrollbars",
+      "--metrics-recording-only",
+      "--window-size=800,600",
+      "--js-flags=--max-old-space-size=192", // 👈 limita el heap de V8 del RENDERER (donde vive WhatsApp Web)
     ],
+  },
+  webVersionCache: {
+    type: "remote",
+    remotePath:
+      "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1023000542-alpha.html",
   },
 });
 
@@ -97,7 +129,7 @@ app.post("/send", async (req, res) => {
       return res.status(404).json({ error: `El número ${destinatario} no tiene WhatsApp.` });
     }
 
-    await client.sendMessage(chatId, mensaje);
+    await client.sendMessage(chatId, mensaje, { linkPreview: false });
     res.json({ success: true });
   } catch (err) {
     console.error("Error enviando WhatsApp:", err.message);

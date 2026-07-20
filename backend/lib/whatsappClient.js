@@ -1,5 +1,8 @@
+const WHATSAPP_SERVICE_URL =
+  process.env.WHATSAPP_SERVICE_URL || "http://localhost:4000";
+
 export async function enviarWhatsApp(destinatario, mensaje) {
-  const response = await fetch("http://localhost:4000/send", {
+  const response = await fetch(`${WHATSAPP_SERVICE_URL}/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ destinatario, mensaje }),
