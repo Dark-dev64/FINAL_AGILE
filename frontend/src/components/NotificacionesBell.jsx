@@ -2,10 +2,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import api from "../services/api";
 import ConfirmDialog from "./ConfirmDialog";
-import { FaBell, FaCheckDouble, FaTrashAlt, FaTimes, FaExclamationCircle } from "react-icons/fa";
+import { FaBell, FaCheckDouble, FaTrashAlt, FaTimes, FaExclamationCircle, FaRegBell } from "react-icons/fa";
 import "../styles/NotificacionesBell.css";
 
 const POLL_MS = 45000;
+const SOPORTA_NOTIFICACIONES_NAVEGADOR = typeof window !== "undefined" && "Notification" in window;
+
+function notificarNavegador(titulo, mensaje) {
+  if (!SOPORTA_NOTIFICACIONES_NAVEGADOR || Notification.permission !== "granted") return;
+  try {
+    new Notification(titulo, { body: mensaje, icon: "/logocip.png" });
+  } catch {
+    // Algunos navegadores (ej. móviles sin Service Worker) no soportan
+    // "new Notification()" directo; simplemente no mostramos la nativa.
+  }
+}
 
 function tiempoRelativo(fechaIso) {
   const diffMin = Math.floor((Date.now() - new Date(fechaIso).getTime()) / 60000);
@@ -23,7 +34,11 @@ function NotificacionesBell() {
   const [borrando, setBorrando] = useState(false);
   const [error, setError] = useState(null);
   const [confirmarBorrarId, setConfirmarBorrarId] = useState(null); // id_notificacion_web | "todas" | null
+  const [permisoNavegador, setPermisoNavegador] = useState(
+    SOPORTA_NOTIFICACIONES_NAVEGADOR ? Notification.permission : "unsupported"
+  );
   const panelRef = useRef(null);
+  const idsConocidosRef = useRef(null); // null = todavía no cargó la primera vez
 
   const cargarNotificaciones = useCallback(async () => {
     if (!session?.id_usuario) return;
@@ -31,11 +46,31 @@ function NotificacionesBell() {
       const response = await api.get("/notificaciones-web", {
         params: { id_usuario: session.id_usuario },
       });
-      setNotificaciones(response.data.data);
+      const datos = response.data.data;
+
+      // Solo disparamos notificación nativa del navegador para las que
+      // aparecen DESPUÉS de la primera carga (no queremos bombardear con
+      // todo el historial apenas se monta el componente).
+      if (idsConocidosRef.current) {
+        for (const n of datos) {
+          if (!idsConocidosRef.current.has(n.id_notificacion_web)) {
+            notificarNavegador(n.titulo, n.mensaje);
+          }
+        }
+      }
+      idsConocidosRef.current = new Set(datos.map((n) => n.id_notificacion_web));
+
+      setNotificaciones(datos);
     } catch {
       setError("No se pudieron cargar las notificaciones.");
     }
   }, [session]);
+
+  async function pedirPermisoNavegador() {
+    if (!SOPORTA_NOTIFICACIONES_NAVEGADOR) return;
+    const resultado = await Notification.requestPermission();
+    setPermisoNavegador(resultado);
+  }
 
   useEffect(() => {
     cargarNotificaciones();
@@ -126,6 +161,12 @@ function NotificacionesBell() {
               <FaTimes />
             </button>
           </div>
+
+          {permisoNavegador === "default" && (
+            <button type="button" className="notificaciones-activar-navegador" onClick={pedirPermisoNavegador}>
+              <FaRegBell /> Activar notificaciones del navegador
+            </button>
+          )}
 
           {notificaciones.length > 0 && (
             <div className="notificaciones-acciones">

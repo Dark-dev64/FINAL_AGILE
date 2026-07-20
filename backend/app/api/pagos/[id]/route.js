@@ -26,12 +26,23 @@ export async function PATCH(request, { params }) {
 
   if (error) return fail(error.message, 500);
 
+  const concepto = TIPO_PAGO_LABELS[data.tipo_pago] ?? data.tipo_pago;
+
   crearNotificacionWeb({
     id_usuario: data.id_usuario_colegiado,
     tipo: "pago_confirmado",
     titulo: "Pago confirmado",
-    mensaje: `Tu pago de S/ ${Number(data.monto_total).toFixed(2)} (${TIPO_PAGO_LABELS[data.tipo_pago] ?? data.tipo_pago}) fue registrado correctamente.`,
+    mensaje: `Tu pago de S/ ${Number(data.monto_total).toFixed(2)} (${concepto}) fue registrado correctamente.`,
   }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+
+  if (body.id_usuario_cajero) {
+    crearNotificacionWeb({
+      id_usuario: body.id_usuario_cajero,
+      tipo: "pago_cobrado",
+      titulo: "Cobro exitoso",
+      mensaje: `Cobraste S/ ${Number(data.monto_total).toFixed(2)} (${concepto}) en efectivo correctamente.`,
+    }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+  }
 
   return ok(data);
 }

@@ -172,8 +172,8 @@ function DashboardCajero() {
       return;
     }
 
-    if (!form.correo.trim() && !form.telefono.trim()) {
-      setFeedback({ type: "error", message: "Debes registrar al menos un correo o un teléfono de contacto." });
+    if (!form.correo.trim()) {
+      setFeedback({ type: "error", message: "Debes registrar un correo de contacto." });
       return;
     }
 
@@ -502,6 +502,7 @@ function DashboardCajero() {
               <label htmlFor="telefono">
                 <FaPhone className="input-icon" />
                 Teléfono
+                <span className="label-hint">(opcional)</span>
               </label>
               <input
                 id="telefono"
@@ -509,7 +510,7 @@ function DashboardCajero() {
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
-                placeholder="Requerido si no das correo"
+                placeholder="Opcional"
                 maxLength={9}
                 disabled={loading}
               />
@@ -526,7 +527,8 @@ function DashboardCajero() {
                 name="correo"
                 value={form.correo}
                 onChange={handleChange}
-                placeholder="Requerido si no das teléfono"
+                placeholder="Ej: correo@ejemplo.com"
+                required
                 disabled={loading}
               />
             </div>
@@ -534,7 +536,7 @@ function DashboardCajero() {
 
           <div className="registro-hint">
             <FaExclamationCircle className="hint-icon" />
-            <span>Debes completar al menos uno de los dos: teléfono o correo.</span>
+            <span>El correo es obligatorio (se usa para el pago y el envío de credenciales). El teléfono es opcional.</span>
           </div>
 
           {/* Foto y Título */}

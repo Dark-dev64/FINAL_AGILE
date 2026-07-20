@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "../../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../../utils/apiResponse";
 import { preferenceClient } from "../../../../../lib/mercadopagoClient";
-import { enviarCorreo } from "../../../../../lib/emailClient";
+import { enviarLinkPagoCorreo } from "../../../../../lib/emailClient";
 import { enviarWhatsApp } from "../../../../../lib/whatsappClient";
 
 const MONTO_MENSUALIDAD = 3.0;
@@ -10,6 +10,11 @@ const MONTO_MATRICULA = MONTO_MENSUALIDAD + MONTO_CARNET;
 
 export async function POST(request) {
   const datosFormulario = await request.json();
+
+  if (!datosFormulario.correo) {
+    return fail("El correo del colegiado es obligatorio para generar el pago.", 400);
+  }
+
   const externalReference = `SOL-${datosFormulario.dni}-${Date.now()}`;
 
   console.log("FRONTEND_URL:", process.env.FRONTEND_URL);

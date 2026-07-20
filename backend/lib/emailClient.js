@@ -303,9 +303,8 @@ function construirHtmlRechazo({ nombreCompleto, dni, motivo }) {
                 correspondiente, no fue posible aprobarla en esta oportunidad.
               </p>
 
-              ${
-                motivo
-                  ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FAF9F6; border: 1px solid #E5E2DD; border-radius: 8px; margin-bottom: 20px;">
+              ${motivo
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FAF9F6; border: 1px solid #E5E2DD; border-radius: 8px; margin-bottom: 20px;">
                 <tr>
                   <td style="padding: 16px 20px;">
                     <p style="margin: 0 0 4px; font-size: 12px; color: #999999; text-transform: uppercase; letter-spacing: 0.03em; font-weight: 600;">Motivo</p>
@@ -313,8 +312,8 @@ function construirHtmlRechazo({ nombreCompleto, dni, motivo }) {
                   </td>
                 </tr>
               </table>`
-                  : ""
-              }
+      : ""
+    }
 
               <p style="margin: 0 0 8px; font-size: 14px; color: #555555; line-height: 1.6;">
                 Si consideras que esto es un error o deseas más información, puedes

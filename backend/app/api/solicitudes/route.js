@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 import { ok, fail } from "../../../utils/apiResponse";
 import { isNotEmpty, isValidDNI } from "../../../utils/validators";
+import { crearNotificacionParaRol } from "../../../lib/notificacionesWeb";
 
 export async function GET() {
   const { error: errorNotificaciones } = await supabaseAdmin.rpc(
@@ -83,5 +84,13 @@ export async function POST(request) {
     .single();
 
   if (error) return fail(error.message, 500);
+
+  crearNotificacionParaRol({
+    rol: "admin",
+    tipo: "solicitud_nueva",
+    titulo: "Nueva solicitud de colegiatura",
+    mensaje: `${body.nombre_completo} (DNI ${body.dni}) registró una nueva solicitud, pendiente de revisión.`,
+  }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+
   return ok(data, 201);
 } 

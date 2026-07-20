@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
+import { crearNotificacionParaRol } from "../../../../lib/notificacionesWeb";
 
 // Hardcodeado en el backend, no confiamos en el monto del cliente.
 const MONTO_MENSUALIDAD = 3.0;
@@ -12,7 +13,7 @@ export async function POST(request) {
   const camposRequeridos = [
     "id_usuario_cajero", "id_sede", "id_especialidad",
     "apellido_paterno", "apellido_materno", "nombre_completo", "dni",
-    "metodo_pago", "fecha_pago", "fecha_vencimiento",
+    "correo", "metodo_pago", "fecha_pago", "fecha_vencimiento",
   ];
 
   for (const campo of camposRequeridos) {
@@ -52,6 +53,13 @@ export async function POST(request) {
   });
 
   if (error) return fail(error.message, 500);
+
+  crearNotificacionParaRol({
+    rol: "admin",
+    tipo: "solicitud_nueva",
+    titulo: "Nueva solicitud de colegiatura",
+    mensaje: `${body.nombre_completo} (DNI ${body.dni}) registró una nueva solicitud, pendiente de revisión.`,
+  }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
 
   return ok(data[0], 201);
 }

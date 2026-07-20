@@ -3,7 +3,8 @@ import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
 import { paymentClient } from "../../../../lib/mercadopagoClient";
 import { enviarComprobantePago } from "../../../../utils/comprobantePago";
-import { crearNotificacionWeb } from "../../../../lib/notificacionesWeb";
+import { crearNotificacionWeb, crearNotificacionParaRol } from "../../../../lib/notificacionesWeb";
+import { motivoRechazoLegible } from "../../../../lib/motivosRechazoMP";
 
 const TIPO_PAGO_LABELS = {
   inscripcion: "matrícula",
@@ -45,6 +46,19 @@ function validarFirmaWebhook(request, dataId) {
 }
 
 export async function POST(request) {
+  try {
+    return await manejarWebhook(request);
+  } catch (err) {
+    // Cualquier excepción no controlada acá (variable de entorno faltante,
+    // error inesperado de la librería de Mercado Pago, etc.) antes hacía que
+    // la función se cayera sin responder nada -> Mercado Pago lo ve como
+    // "502 Falla en entrega". Con esto siempre devolvemos una respuesta.
+    console.error("❌ Error inesperado en el webhook de Mercado Pago:", err);
+    return fail("Error interno procesando el webhook.", 500);
+  }
+}
+
+async function manejarWebhook(request) {
   const url = new URL(request.url);
   // Mercado Pago también manda data.id como query param en algunas notificaciones
   const dataIdQuery = url.searchParams.get("data.id");
@@ -87,13 +101,19 @@ export async function POST(request) {
     // "pending"/"in_process"/etc. sí pueden resolverse más tarde, así que
     // esos los dejamos como "pendiente" (comportamiento actual, sin cambios).
     if (pago.status === "rejected" && pago.external_reference) {
-      const { error: errorRechazo } = await supabaseAdmin
+      const { data: ordenRechazada, error: errorRechazo } = await supabaseAdmin
         .from("ordenes_pago_pendientes")
         .update({ estado: "rechazado", motivo_rechazo: pago.status_detail || "rejected" })
-        .eq("external_reference", pago.external_reference);
+        .eq("external_reference", pago.external_reference)
+        .select()
+        .maybeSingle();
 
       if (errorRechazo) {
         console.error("❌ Error registrando el rechazo del pago:", errorRechazo.message);
+      } else if (ordenRechazada) {
+        notificarRechazoPago(ordenRechazada, pago.status_detail).catch((err) =>
+          console.error("❌ Error inesperado notificando rechazo:", err.message)
+        );
       }
     }
 
@@ -172,6 +192,13 @@ export async function POST(request) {
     orderNumber: String(paymentId),
   }).catch((err) => console.error("❌ Error inesperado enviando comprobante:", err.message));
 
+  crearNotificacionParaRol({
+    rol: "admin",
+    tipo: "solicitud_nueva",
+    titulo: "Nueva solicitud de colegiatura",
+    mensaje: `${form.nombre_completo} (DNI ${form.dni}) registró una nueva solicitud, pendiente de revisión.`,
+  }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+
   console.log("✅ Solicitud creada:", resultado[0]);
   return ok({ solicitud_creada: resultado[0] });
 }
@@ -227,8 +254,64 @@ async function procesarPagoExistente(ordenTemp, paymentId) {
       titulo: "Pago confirmado",
       mensaje: `Tu pago de S/ ${Number(ordenTemp.monto).toFixed(2)} (${concepto}) fue registrado correctamente.`,
     }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+
+    if (ordenTemp.id_usuario_cajero) {
+      crearNotificacionWeb({
+        id_usuario: ordenTemp.id_usuario_cajero,
+        tipo: "pago_cobrado",
+        titulo: "Cobro exitoso",
+        mensaje: `El cobro de S/ ${Number(ordenTemp.monto).toFixed(2)} (${concepto}) que generaste fue confirmado por Mercado Pago.`,
+      }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
+    }
   }
 
   console.log("✅ Pagos existentes marcados como pagados:", ordenTemp.ids_pago);
   return ok({ pagos_actualizados: ordenTemp.ids_pago });
+}
+
+async function notificarRechazoPago(ordenTemp, statusDetail) {
+  const motivo = motivoRechazoLegible(statusDetail);
+
+  // Flujo de registro de colegiado nuevo: todavía no existe cuenta de
+  // usuario para el solicitante, solo para el cajero que lo registró.
+  if (ordenTemp.datos_solicitud) {
+    const form = ordenTemp.datos_solicitud;
+    await crearNotificacionWeb({
+      id_usuario: form.id_usuario_cajero,
+      tipo: "pago_rechazado",
+      titulo: "Pago rechazado",
+      mensaje: `El pago de matrícula de ${form.nombre_completo} (DNI ${form.dni}) fue rechazado: ${motivo}`,
+    });
+    return;
+  }
+
+  // Flujo de cobro de un pago ya existente (mensualidad/deuda).
+  if (ordenTemp.id_usuario_cajero) {
+    await crearNotificacionWeb({
+      id_usuario: ordenTemp.id_usuario_cajero,
+      tipo: "pago_rechazado",
+      titulo: "Pago rechazado",
+      mensaje: `El cobro de S/ ${Number(ordenTemp.monto).toFixed(2)} que generaste fue rechazado: ${motivo}`,
+    });
+    return;
+  }
+
+  // Pago self-service (el propio colegiado pagando desde su panel).
+  if (ordenTemp.ids_pago?.length) {
+    const { data: pagoRef } = await supabaseAdmin
+      .from("pagos")
+      .select("id_usuario_colegiado")
+      .in("id_pago", ordenTemp.ids_pago)
+      .limit(1)
+      .maybeSingle();
+
+    if (pagoRef?.id_usuario_colegiado) {
+      await crearNotificacionWeb({
+        id_usuario: pagoRef.id_usuario_colegiado,
+        tipo: "pago_rechazado",
+        titulo: "Pago rechazado",
+        mensaje: `Tu pago de S/ ${Number(ordenTemp.monto).toFixed(2)} fue rechazado: ${motivo} Puedes intentar de nuevo.`,
+      });
+    }
+  }
 }
