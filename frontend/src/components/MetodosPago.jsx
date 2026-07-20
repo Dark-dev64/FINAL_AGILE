@@ -204,8 +204,25 @@ function MetodosPago({
             }}
             onSubmit={async ({ formData }) => {
               try {
-                await api.post("/pagos/mercadopago/procesar-pago", formData);
-                // el polling que ya está corriendo detecta el "pagado" vía webhook
+                const response = await api.post("/pagos/mercadopago/procesar-pago", {
+                  ...formData,
+                  external_reference: preferenciaMP.external_reference,
+                });
+                const { status, motivo } = response.data.data;
+
+                if (status === "rejected") {
+                  // Rechazo instantáneo (ej. tarjeta inválida): no hace falta
+                  // esperar al webhook, ya sabemos que falló.
+                  clearInterval(intervaloRef.current);
+                  setFeedback({
+                    type: "error",
+                    message: `Mercado Pago rechazó el pago: ${motivo || "intenta con otro medio de pago."} Puedes intentar de nuevo.`,
+                  });
+                  setPreferenciaMP(null);
+                  setMostrarBrick(false);
+                }
+                // si quedó aprobado o pendiente, el polling que ya está
+                // corriendo lo detecta vía webhook.
               } catch {
                 setFeedback({ type: "error", message: "No se pudo procesar el pago con QR." });
               }
