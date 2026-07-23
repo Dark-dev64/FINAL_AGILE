@@ -15,10 +15,9 @@ export async function GET(request) {
 
   if (errorUsuario || !usuario) return fail("Usuario no encontrado.", 404);
 
-  // Ya cambió su contraseña temporal: no se debe poder recuperar el
-  // mensaje con la contraseña anterior.
+  // Ya cambió su contraseña temporal o no requiere mostrar credenciales
   if (!usuario.requiere_cambio_password) {
-    return fail("Ya no hay credenciales pendientes de mostrar.", 403);
+    return ok({ mensaje: null });
   }
 
   const { data: envio, error: errorEnvio } = await supabaseAdmin
@@ -30,7 +29,7 @@ export async function GET(request) {
     .maybeSingle();
 
   if (errorEnvio) return fail(errorEnvio.message, 500);
-  if (!envio) return fail("No se encontraron credenciales enviadas para este usuario.", 404);
+  if (!envio) return ok({ mensaje: null });
 
   return ok(envio);
 }

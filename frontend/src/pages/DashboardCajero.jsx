@@ -237,13 +237,7 @@ function DashboardCajero() {
       setVerificandoDuplicados(false);
     }
 
-    // Nada se envía todavía. Solo pasamos los datos a la pantalla de pago.
-    navigate("/dashboard-cajero/pago", {
-      state: { form, fotoFile, tituloFile },
-    });
-  }
-
-  async function registrarSolicitud() {
+    // Proceso de subida de archivos y creación de la solicitud
     setLoading(true);
     setSubiendoArchivos(true);
 
@@ -255,7 +249,7 @@ function DashboardCajero() {
 
       setSubiendoArchivos(false);
 
-      await api.post("/solicitudes", {
+      const response = await api.post("/solicitudes", {
         ...form,
         id_usuario_cajero: session.id_usuario,
         foto_key: datosFoto.foto_key,
@@ -268,8 +262,24 @@ function DashboardCajero() {
         titulo_size_bytes: datosTitulo.titulo_size_bytes,
       });
 
-      setFeedback({ type: "success", message: "Solicitud registrada correctamente. Queda pendiente de aprobación." });
+      const { id_solicitud } = response.data.data;
+      
+      const nombreCompleto = form.nombre_completo;
+      const dni = form.dni;
+      const correo = form.correo;
+      const telefono = form.telefono;
+
       resetFormulario();
+
+      navigate("/dashboard-cajero/pago", {
+        state: {
+          idSolicitud: id_solicitud,
+          nombreCompleto,
+          dni,
+          correo,
+          telefono,
+        },
+      });
     } catch (err) {
       const mensaje = err.response?.data?.error || "No se pudo registrar la solicitud.";
       setFeedback({ type: "error", message: mensaje });

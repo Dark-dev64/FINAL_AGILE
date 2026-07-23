@@ -251,7 +251,7 @@ function DetalleSolicitud({ idSolicitud, onClose }) {
             )}
 
             {/* ===== ACCIONES ===== */}
-            {detalle.estado_solicitud === "pendiente" && (
+            {detalle.estado_solicitud === "pendiente" && session?.rol === "admin" && (
               <div className="detalle-acciones-wrapper">
                 {confirmando === null && (
                   <div className="detalle-acciones">

@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 import "../styles/Dashboard.css";
 import "../styles/ListaSolicitudes.css";
+import { useAuth } from "../hooks/useAuth";
 
 const ESTADO_LABELS = {
   pendiente: { label: "Pendiente", color: "yellow" },
@@ -31,6 +32,7 @@ const FILTROS = [
 ];
 
 function DashboardAdmin() {
+  const { session } = useAuth();
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,14 +46,16 @@ function DashboardAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get("/solicitudes");
+      const response = await api.get("/solicitudes", {
+        params: { id_usuario: session?.id_usuario, id_solicitud: session?.sedes },
+      });
       setSolicitudes(response.data.data);
     } catch (err) {
       setError("No se pudieron cargar las solicitudes.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.id_usuario]);
 
   useEffect(() => {
     cargarSolicitudes();
@@ -103,7 +107,7 @@ function DashboardAdmin() {
     <section className="dashboard form-layout">
       <div className="lista-solicitudes">
         <div className="registro-header">
-          <span className="dashboard-role">Administrador</span>
+          <span className="dashboard-role">{session?.rol === "cajero" ? "Cajero" : "Administrador"}</span>
           <h1>Solicitudes de colegiatura</h1>
           <p>Haz clic en una fila para ver el detalle completo.</p>
         </div>

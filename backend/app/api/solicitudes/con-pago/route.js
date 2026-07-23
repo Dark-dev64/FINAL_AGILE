@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail, mensajeErrorDuplicado } from "../../../../utils/apiResponse";
 import { crearNotificacionParaRol } from "../../../../lib/notificacionesWeb";
+import { enviarComprobantePago } from "../../../../utils/comprobantePago";
 
 // Hardcodeado en el backend, no confiamos en el monto del cliente.
 const MONTO_MENSUALIDAD = 3.0;
@@ -53,6 +54,18 @@ export async function POST(request) {
   });
 
   if (error) return fail(mensajeErrorDuplicado(error) || error.message, 500);
+
+  const idSolicitudCreada = data?.[0]?.id_solicitud;
+
+  enviarComprobantePago({
+    nombreCompleto: body.nombre_completo,
+    dni: body.dni,
+    correo: body.correo || null,
+    telefono: body.telefono || null,
+    metodoPago: body.metodo_pago,
+    monto: MONTO_MATRICULA,
+    orderNumber: idSolicitudCreada ? `MATRICULA-${idSolicitudCreada}` : `MATRICULA-${body.dni}`,
+  }).catch((err) => console.error("❌ Error inesperado enviando comprobante:", err.message));
 
   crearNotificacionParaRol({
     rol: "admin",

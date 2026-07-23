@@ -3,6 +3,7 @@ import cors from "cors";
 import pkg from "whatsapp-web.js";
 const { Client, LocalAuth } = pkg;
 import qrcode from "qrcode-terminal";
+import fs from "fs";
 
 const app = express();
 app.use(cors());
@@ -10,17 +11,43 @@ app.use(express.json());
 
 let clienteListo = false;
 
+// Rutas comunes de Chrome/Edge en Windows — usa la que exista
+const posiblesRutas = [
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+];
+const chromePath = posiblesRutas.find((ruta) => fs.existsSync(ruta));
+
+if (!chromePath) {
+  console.error("❌ No se encontró Chrome ni Edge instalado en las rutas esperadas.");
+}
+
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: "sistema-cip" }),
   puppeteer: {
     headless: true,
+    executablePath: chromePath,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    protocolTimeout: 60000,
   },
 });
 
 client.on("qr", (qr) => {
   console.log("\n📱 Escanea este código QR con WhatsApp → Dispositivos vinculados:\n");
   qrcode.generate(qr, { small: true });
+});
+
+client.on("loading_screen", (percent, message) => {
+  console.log(`⏳ Cargando WhatsApp Web: ${percent}% - ${message}`);
+});
+
+client.on("authenticated", () => {
+  console.log("🔑 Autenticado correctamente.");
+});
+
+client.on("auth_failure", (msg) => {
+  console.error("❌ Fallo de autenticación:", msg);
 });
 
 client.on("ready", () => {

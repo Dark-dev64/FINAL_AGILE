@@ -1,13 +1,18 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import NotificacionesBell from "./NotificacionesBell";
-import { FaHome, FaCreditCard, FaKey, FaSignOutAlt, FaFileInvoiceDollar } from "react-icons/fa";
+import { FaHome, FaCreditCard, FaKey, FaSignOutAlt, FaFileInvoiceDollar, FaClipboardList, FaChartBar } from "react-icons/fa";
 import "../styles/DashboardMenuBar.css";
 
 const MENU_ITEMS = {
   colegiado: [{ label: "Mis pagos", to: "/dashboard-colegiado/pagos", icon: FaCreditCard }],
   cajero: [
+    { label: "Solicitudes", to: "/dashboard-cajero/solicitudes", icon: FaClipboardList },
     { label: "Pagar mensualidad/deudas", to: "/dashboard-cajero/pagar-colegiado", icon: FaFileInvoiceDollar },
+    { label: "Reporte de pagos", to: "/dashboard-cajero/reporte-pagos", icon: FaChartBar },
+  ],
+  admin: [
+    { label: "Reporte de pagos", to: "/dashboard-admin/reporte-pagos", icon: FaChartBar },
   ],
 };
 

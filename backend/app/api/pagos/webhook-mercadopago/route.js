@@ -111,9 +111,29 @@ async function manejarWebhook(request) {
       if (errorRechazo) {
         console.error("❌ Error registrando el rechazo del pago:", errorRechazo.message);
       } else if (ordenRechazada) {
-        notificarRechazoPago(ordenRechazada, pago.status_detail).catch((err) =>
+        // Primero notificar rechazo
+        await notificarRechazoPago(ordenRechazada, pago.status_detail).catch((err) =>
           console.error("❌ Error inesperado notificando rechazo:", err.message)
         );
+
+        // Si es flujo de matrícula, borrar solicitud y su orden pendiente asociada
+        if (ordenRechazada.id_solicitud) {
+          const { error: errorDelSol } = await supabaseAdmin
+            .from("solicitudes")
+            .delete()
+            .eq("id_solicitud", ordenRechazada.id_solicitud);
+          if (errorDelSol) {
+            console.error("❌ Error eliminando solicitud rechazada:", errorDelSol.message);
+          }
+
+          const { error: errorDelOrden } = await supabaseAdmin
+            .from("ordenes_pago_pendientes")
+            .delete()
+            .eq("id_orden_temp", ordenRechazada.id_orden_temp);
+          if (errorDelOrden) {
+            console.error("❌ Error eliminando orden rechazada:", errorDelOrden.message);
+          }
+        }
       }
     }
 
@@ -145,62 +165,76 @@ async function manejarWebhook(request) {
     return ok({ recibido: true, ya_procesado: true });
   }
 
-  if (!ordenTemp.datos_solicitud) {
-    return procesarPagoExistente(ordenTemp, paymentId);
+  if (ordenTemp.id_solicitud) {
+    return procesarPagoMatricula(ordenTemp, paymentId);
   }
 
-  const form = ordenTemp.datos_solicitud;
+  return procesarPagoExistente(ordenTemp, paymentId);
+}
 
-  const { data: resultado, error } = await supabaseAdmin.rpc("fn_registrar_solicitud_con_pago", {
-    p_id_usuario_cajero: form.id_usuario_cajero,
-    p_id_sede: form.id_sede,
-    p_id_especialidad: form.id_especialidad,
-    p_apellido_paterno: form.apellido_paterno,
-    p_apellido_materno: form.apellido_materno,
-    p_nombre_completo: form.nombre_completo,
-    p_dni: form.dni,
-    p_telefono: form.telefono || null,
-    p_correo: form.correo || null,
-    p_foto_key: form.foto_key || null,
-    p_foto_content_type: form.foto_content_type || null,
-    p_foto_size_bytes: form.foto_size_bytes || null,
-    p_foto_ancho_px: form.foto_ancho_px || null,
-    p_foto_alto_px: form.foto_alto_px || null,
-    p_titulo_key: form.titulo_key || null,
-    p_titulo_content_type: form.titulo_content_type || null,
-    p_titulo_size_bytes: form.titulo_size_bytes || null,
-    p_metodo_pago: "mercadopago",
-    p_monto_base: ordenTemp.monto,
-    p_fecha_pago: new Date().toISOString(),
-    p_fecha_vencimiento: new Date().toISOString().slice(0, 10),
-  });
+async function procesarPagoMatricula(ordenTemp, paymentId) {
+  // 1. Actualizar estado de solicitud a 'pendiente' y traer datos del colegiado
+  const { data: solicitud, error: errorSol } = await supabaseAdmin
+    .from("solicitudes")
+    .update({ estado_solicitud: "pendiente" })
+    .eq("id_solicitud", ordenTemp.id_solicitud)
+    .select("id_usuario_colegiado, nombre_completo, dni, correo, telefono")
+    .single();
 
-  if (error) {
-    console.error("❌ Error en RPC fn_registrar_solicitud_con_pago:", error.message);
-    return fail(mensajeErrorDuplicado(error) || error.message, 500);
+  if (errorSol || !solicitud) {
+    console.error("❌ Error actualizando estado de solicitud en webhook:", errorSol?.message);
+    return fail(errorSol?.message || "Solicitud no encontrada", 500);
   }
 
-  await supabaseAdmin.from("ordenes_pago_pendientes").delete().eq("id_orden_temp", ordenTemp.id_orden_temp);
+  // 2. Insertar pago matrícula
+  const { error: errorPago } = await supabaseAdmin
+    .from("pagos")
+    .insert({
+      id_solicitud: ordenTemp.id_solicitud,
+      id_usuario_colegiado: solicitud.id_usuario_colegiado || null,
+      id_usuario_cajero: ordenTemp.id_usuario_cajero || null,
+      tipo_pago: "inscripcion",
+      metodo_pago: "mercadopago",
+      monto_base: ordenTemp.monto,
+      porcentaje_recargo: 0,
+      fecha_vencimiento: new Date().toISOString().slice(0, 10),
+      fecha_pago: new Date().toISOString(),
+      estado_pago: "pagado",
+      mercadopago_payment_id: String(paymentId)
+    });
 
+  if (errorPago) {
+    console.error("❌ Error registrando el pago de matrícula en webhook:", errorPago.message);
+    return fail(errorPago.message, 500);
+  }
+
+  // 3. Borrar orden de pago pendiente
+  await supabaseAdmin
+    .from("ordenes_pago_pendientes")
+    .delete()
+    .eq("id_orden_temp", ordenTemp.id_orden_temp);
+
+  // 4. Enviar comprobante
   enviarComprobantePago({
-    nombreCompleto: form.nombre_completo,
-    dni: form.dni,
-    correo: form.correo || null,
-    telefono: form.telefono || null,
+    nombreCompleto: solicitud.nombre_completo,
+    dni: solicitud.dni,
+    correo: solicitud.correo || null,
+    telefono: solicitud.telefono || null,
     metodoPago: "mercadopago",
     monto: ordenTemp.monto,
     orderNumber: String(paymentId),
   }).catch((err) => console.error("❌ Error inesperado enviando comprobante:", err.message));
 
+  // 5. Notificar al administrador
   crearNotificacionParaRol({
     rol: "admin",
     tipo: "solicitud_nueva",
     titulo: "Nueva solicitud de colegiatura",
-    mensaje: `${form.nombre_completo} (DNI ${form.dni}) registró una nueva solicitud, pendiente de revisión.`,
+    mensaje: `${solicitud.nombre_completo} (DNI ${solicitud.dni}) registró una nueva solicitud, pendiente de revisión.`,
   }).catch((err) => console.error("❌ Error inesperado creando notificación web:", err.message));
 
-  console.log("✅ Solicitud creada:", resultado[0]);
-  return ok({ solicitud_creada: resultado[0] });
+  console.log("✅ Pago de matrícula confirmado para solicitud:", ordenTemp.id_solicitud);
+  return ok({ solicitud_confirmada: ordenTemp.id_solicitud });
 }
 
 async function procesarPagoExistente(ordenTemp, paymentId) {
@@ -272,16 +306,22 @@ async function procesarPagoExistente(ordenTemp, paymentId) {
 async function notificarRechazoPago(ordenTemp, statusDetail) {
   const motivo = motivoRechazoLegible(statusDetail);
 
-  // Flujo de registro de colegiado nuevo: todavía no existe cuenta de
-  // usuario para el solicitante, solo para el cajero que lo registró.
-  if (ordenTemp.datos_solicitud) {
-    const form = ordenTemp.datos_solicitud;
-    await crearNotificacionWeb({
-      id_usuario: form.id_usuario_cajero,
-      tipo: "pago_rechazado",
-      titulo: "Pago rechazado",
-      mensaje: `El pago de matrícula de ${form.nombre_completo} (DNI ${form.dni}) fue rechazado: ${motivo}`,
-    });
+  // Flujo de registro de colegiado nuevo
+  if (ordenTemp.id_solicitud) {
+    const { data: solicitud, error: errorSol } = await supabaseAdmin
+      .from("solicitudes")
+      .select("nombre_completo, dni, id_usuario_cajero")
+      .eq("id_solicitud", ordenTemp.id_solicitud)
+      .single();
+
+    if (solicitud) {
+      await crearNotificacionWeb({
+        id_usuario: solicitud.id_usuario_cajero,
+        tipo: "pago_rechazado",
+        titulo: "Pago rechazado",
+        mensaje: `El pago de matrícula de ${solicitud.nombre_completo} (DNI ${solicitud.dni}) fue rechazado: ${motivo}`,
+      });
+    }
     return;
   }
 

@@ -1,0 +1,177 @@
+.reporte-pagos-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.reporte-filtros-card {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reporte-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filtro-campo label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filtro-campo select,
+.filtro-campo input[type="date"] {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #E5E2DD;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--color-charcoal);
+  background-color: #FAF9F6;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filtro-campo select:focus,
+.filtro-campo input[type="date"]:focus {
+  border-color: var(--color-red);
+  background-color: var(--color-white);
+}
+
+.reporte-filtros-acciones {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-limpiar-filtros {
+  background: transparent;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  border-radius: 6px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-limpiar-filtros:hover {
+  background-color: var(--color-red);
+  color: var(--color-white);
+}
+
+.reporte-stats-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.stat-card.primary {
+  background-color: #E1F5E4;
+  border: 1px solid #1E7A34;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-card.primary .stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1E7A34;
+  font-family: var(--font-display);
+}
+
+.stat-card.primary .stat-label {
+  font-size: 0.85rem;
+  color: #1E7A34;
+  font-weight: 600;
+}
+
+.stats-desglose-card {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stats-desglose-card h3 {
+  font-size: 0.9rem;
+  color: var(--color-charcoal);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid #EFEDE8;
+  padding-bottom: 0.5rem;
+}
+
+.desglose-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.desglose-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+
+.desglose-item span {
+  color: var(--color-text-muted);
+}
+
+.desglose-item strong {
+  color: var(--color-charcoal);
+  font-weight: 700;
+}
+
+.metodo-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.metodo-badge.efectivo {
+  background-color: #E1F5E4;
+  color: #1E7A34;
+}
+
+.metodo-badge.mercadopago {
+  background-color: #E3F2FD;
+  color: #0288D1;
+}
+
+.metodo-badge.yape {
+  background-color: #F3E5F5;
+  color: #7B1FA2;
+}
+
+.metodo-badge.plin {
+  background-color: #FFF3E0;
+  color: #E65100;
+}

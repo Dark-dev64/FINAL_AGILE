@@ -41,7 +41,23 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   const { id } = await params;
-  const { estado_solicitud, observacion, id_usuario_admin } = await request.json();
+  const body = await request.json().catch(() => ({}));
+  const { estado_solicitud, observacion, id_usuario_admin, id_usuario } = body;
+
+  const userId = id_usuario_admin || id_usuario;
+  if (!userId) {
+    return fail("Solo un administrador puede aprobar o rechazar solicitudes", 403);
+  }
+
+  const { data: usuario, error: userError } = await supabaseAdmin
+    .from("usuarios")
+    .select("id_usuario, roles(nombre)")
+    .eq("id_usuario", userId)
+    .single();
+
+  if (userError || !usuario || usuario.roles?.nombre !== "admin") {
+    return fail("Solo un administrador puede aprobar o rechazar solicitudes", 403);
+  }
 
   if (!["aprobada", "rechazada"].includes(estado_solicitud)) {
     return fail("Estado inválido. Usa 'aprobada' o 'rechazada'.");

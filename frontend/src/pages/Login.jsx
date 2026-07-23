@@ -72,10 +72,12 @@ function Login() {
           const credResponse = await api.get("/credenciales/mias", {
             params: { id_usuario: usuario.id_usuario },
           });
-          setCredencialesInfo(credResponse.data.data.mensaje);
-          setRedirectPath(destino);
-          setIsLoading(false);
-          return;
+          if (credResponse.data.data?.mensaje) {
+            setCredencialesInfo(credResponse.data.data.mensaje);
+            setRedirectPath(destino);
+            setIsLoading(false);
+            return;
+          }
         } catch {
           // Si no se pudo recuperar el mensaje, no bloqueamos el login normal.
         }

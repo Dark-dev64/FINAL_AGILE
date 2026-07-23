@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "../../../../lib/supabaseClient";
 import { ok, fail } from "../../../../utils/apiResponse";
 import { crearNotificacionWeb } from "../../../../lib/notificacionesWeb";
+import { enviarComprobantePago } from "../../../../utils/comprobantePago";
 
 const TIPO_PAGO_LABELS = {
   inscripcion: "matrícula",
@@ -27,6 +28,39 @@ export async function PATCH(request, { params }) {
   if (error) return fail(error.message, 500);
 
   const concepto = TIPO_PAGO_LABELS[data.tipo_pago] ?? data.tipo_pago;
+
+  // Enviar comprobante de pago por correo (Gmail) y/o WhatsApp
+  let consultaSolicitud = null;
+  if (data.id_solicitud) {
+    consultaSolicitud = supabaseAdmin
+      .from("solicitudes")
+      .select("nombre_completo, dni, correo, telefono, numero_registro")
+      .eq("id_solicitud", data.id_solicitud)
+      .maybeSingle();
+  } else if (data.id_usuario_colegiado) {
+    consultaSolicitud = supabaseAdmin
+      .from("solicitudes")
+      .select("nombre_completo, dni, correo, telefono, numero_registro")
+      .eq("id_usuario_colegiado", data.id_usuario_colegiado)
+      .maybeSingle();
+  }
+
+  if (consultaSolicitud) {
+    consultaSolicitud.then(({ data: solicitud }) => {
+      if (solicitud) {
+        enviarComprobantePago({
+          nombreCompleto: solicitud.nombre_completo,
+          dni: solicitud.dni,
+          correo: solicitud.correo || null,
+          telefono: solicitud.telefono || null,
+          metodoPago: data.metodo_pago || "efectivo",
+          monto: data.monto_total,
+          numeroRegistro: solicitud.numero_registro || null,
+          orderNumber: `PAGO-${data.id_pago}`,
+        }).catch((err) => console.error("❌ Error inesperado enviando comprobante de pago:", err.message));
+      }
+    }).catch((err) => console.error("❌ Error consultando colegiado para comprobante:", err.message));
+  }
 
   crearNotificacionWeb({
     id_usuario: data.id_usuario_colegiado,
